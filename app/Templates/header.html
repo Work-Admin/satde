@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ titulo }} · SATDE</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='estilo.css') }}">
+</head>
+<body>
+<div class="franja">Prototipo · datos simulados · Grupo colaborativo 139 · UNAD</div>
+{% if usuario %}
+{% set ruta = request.url.path %}
+<header class="barra">
+  <a class="marca" href="/dashboard">SATDE</a>
+  <nav aria-label="Principal">
+    <a href="/dashboard" {% if ruta.startswith('/dashboard') %}aria-current="page"{% endif %}>Dashboard</a>
+    <a href="/estudiantes/" {% if ruta.startswith('/estudiantes') %}aria-current="page"{% endif %}>Estudiantes</a>
+    <a href="/seguimiento/alertas/" {% if ruta.startswith('/seguimiento/alertas') %}aria-current="page"{% endif %}>Alertas</a>
+    {% if alertas_nuevas %}<a class="contador" href="/seguimiento/alertas/">{{ alertas_nuevas }}</a>{% endif %}
+    <a href="/seguimiento/casos/" {% if ruta.startswith('/seguimiento/casos') %}aria-current="page"{% endif %}>Casos</a>
+    <a href="/docs">API</a>
+  </nav>
+  <div class="quien">
+    <span>{{ usuario.nombre }} ({{ usuario.rol }})</span>
+    <a class="boton" href="/logout/">Salir</a>
+  </div>
+</header>
+{% endif %}
+<main>
+{% for m in mensajes %}<div class="aviso {{ m.tipo }}" role="status">{{ m.texto }}</div>{% endfor %}

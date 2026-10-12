@@ -1,0 +1,21 @@
+{% set titulo = "Ingresar" %}
+{% include "header.html" %}
+
+<div class="login">
+  <form class="caja pila" method="post" action="/login/">
+    <div>
+      <h1>SATDE</h1>
+      <p class="sub">Sistema de Alerta Temprana de Deserción Escolar</p>
+    </div>
+    {% if error %}<div class="aviso error" role="alert">{{ error }}</div>{% endif %}
+    <div><label for="usuario">Usuario</label>
+      <input type="text" id="usuario" name="usuario" value="{{ usuario_txt or '' }}" autocomplete="username" required autofocus></div>
+    <div><label for="clave">Contraseña</label>
+      <input type="password" id="clave" name="clave" autocomplete="current-password" required></div>
+    <button class="principal" type="submit">Ingresar</button>
+  </form>
+  <p class="legal">Este sistema contiene datos personales de menores de edad protegidos por la Ley 1581 de 2012.
+    Uso exclusivo del personal autorizado; los ingresos y consultas quedan registrados.</p>
+</div>
+
+{% include "footer.html" %}
