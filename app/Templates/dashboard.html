@@ -1,0 +1,63 @@
+{% set titulo = "Tablero" %}
+{% include "header.html" %}
+
+<h1>Dashboard</h1>
+<p class="sub">Estado de riesgo de los estudiantes activos de la institución.</p>
+
+<section class="rejilla kpis">
+  <div class="caja kpi">
+    <div class="etiqueta">Estudiantes activos</div>
+    <div class="valor">{{ total }}</div>
+  </div>
+  <div class="caja kpi alto">
+    <div class="etiqueta">Riesgo alto</div>
+    <div class="valor">{{ niveles.get('ALTO', 0) }}</div>
+    <div class="nota">Medio {{ niveles.get('MEDIO', 0) }} · Bajo {{ niveles.get('BAJO', 0) }}</div>
+  </div>
+  <div class="caja kpi alerta">
+    <div class="etiqueta">Alertas nuevas</div>
+    <div class="valor">{{ alertas_nuevas }}</div>
+    <div class="nota"><a href="/seguimiento/alertas/">Ver alertas</a></div>
+  </div>
+  <div class="caja kpi">
+    <div class="etiqueta">Casos abiertos</div>
+    <div class="valor">{{ casos_abiertos }}</div>
+    <div class="nota">Retención de casos cerrados: {{ retencion }}</div>
+  </div>
+</section>
+
+<section class="rejilla dos">
+  <div class="caja">
+    <h2>Nivel de riesgo por grado</h2>
+    <div class="barras-v" role="img" aria-label="Estudiantes por grado y nivel de riesgo">
+      {% for g in por_grado %}
+      <div class="col" title="Grado {{ g.grado }}: alto {{ g.ALTO }}, medio {{ g.MEDIO }}, bajo {{ g.BAJO }}">
+        {% for n in ['BAJO', 'MEDIO', 'ALTO'] %}
+          {% if g[n] %}<div class="seg {{ n }}" style="height: {{ (g[n] / max_grado * 100) | round(1) }}%"></div>{% endif %}
+        {% endfor %}
+        <span class="rot">{{ g.grado }}°</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="leyenda">
+      <span><i class="muestra ALTO"></i>Alto</span>
+      <span><i class="muestra MEDIO"></i>Medio</span>
+      <span><i class="muestra BAJO"></i>Bajo</span>
+    </div>
+  </div>
+
+  <div class="caja">
+    <h2>Factores más frecuentes</h2>
+    <div class="barras-h">
+      {% for etiqueta, n in factores %}
+      <div class="fila">
+        <span>{{ etiqueta }}</span>
+        <div class="pista"><div class="valor-b" style="width: {{ (n / max_factor * 100) | round(1) }}%"></div></div>
+        <span class="num">{{ n }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% include "footer.html" %}

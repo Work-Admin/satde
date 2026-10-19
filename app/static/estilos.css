@@ -1,0 +1,144 @@
+/* SATDE · prototipo de media fidelidad.
+   Interfaz con colores institucionales; riesgo con semáforo (rojo, amarillo, verde). */
+:root {
+  /* institucionales (ajustar con el manual de marca si se tiene) */
+  --marca: #0b5394;
+  --marca-oscura: #073763;
+  --acento: #f39200;
+
+  /* semáforo de riesgo: color fuerte + fondo suave */
+  --alto: #c62828;
+  --alto-suave: #fdeaea;
+  --medio: #f2a900;
+  --medio-suave: #fff6dc;
+  --bajo: #2e7d32;
+  --bajo-suave: #e8f5e9;
+
+  /* neutros */
+  --papel: #ffffff;
+  --fondo: #f4f6f9;
+  --tinta: #1f2933;
+  --linea: #cbd2d9;
+  --gris: #e4e7eb;
+  --gris-medio: #9aa5b1;
+  --suave: #f8f9fb;
+
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--tinta);
+  background: var(--fondo);
+  font-size: 15px;
+  line-height: 1.45;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: var(--marca); }
+:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+/* ---------- cabecera y pie ---------- */
+.franja { background: var(--marca-oscura); color: var(--papel); font-size: 12px; padding: 4px 24px; }
+.barra { display: flex; align-items: center; gap: 28px; padding: 12px 24px; background: var(--papel);
+  border-bottom: 3px solid var(--acento); flex-wrap: wrap; }
+.barra .marca { font-weight: 700; font-size: 20px; text-decoration: none; letter-spacing: .5px; color: var(--marca); }
+.barra nav { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
+.barra nav a { color: var(--tinta); text-decoration: none; padding: 4px 0; border-bottom: 2px solid transparent; }
+.barra nav a:hover { color: var(--marca); }
+.barra nav a[aria-current="page"] { color: var(--marca); font-weight: 600; border-bottom-color: var(--marca); }
+.barra .quien { margin-left: auto; font-size: 13px; display: flex; gap: 14px; align-items: center; }
+.barra nav a.contador { display: inline-block; min-width: 22px; padding: 0 7px; border-radius: 11px; border: 0;
+  background: var(--alto); color: var(--papel); font-size: 12px; font-weight: 600; text-align: center; }
+.pie { padding: 14px 24px; font-size: 12px; color: #616e7c; text-align: center; }
+
+/* ---------- estructura ---------- */
+main { max-width: 1180px; margin: 0 auto; padding: 24px; min-height: calc(100vh - 140px); }
+h1 { font-size: 28px; font-weight: 600; margin: 0 0 4px; color: var(--marca-oscura); }
+.sub { margin: 0 0 20px; color: #52606d; font-size: 13px; }
+.cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.cabeza .acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.caja { border: 1px solid var(--linea); border-radius: 8px; padding: 16px 18px; background: var(--papel); }
+.caja h2 { font-size: 14px; margin: 0 0 12px; color: var(--marca-oscura); }
+.caja + .caja { margin-top: 18px; }
+.rejilla { display: grid; gap: 18px; }
+.rejilla > .caja + .caja { margin-top: 0; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 18px; }
+.kpi { border-top: 4px solid var(--marca); }
+.kpi.alto { border-top-color: var(--alto); }
+.kpi.alerta { border-top-color: var(--acento); }
+.kpi .etiqueta { font-size: 13px; color: #52606d; }
+.kpi .valor { font-size: 40px; line-height: 1.1; margin: 6px 0 4px; font-weight: 600; }
+.kpi.alto .valor { color: var(--alto); }
+.kpi .nota { font-size: 12px; }
+.dos { grid-template-columns: 1.4fr 1fr; }
+.mitad { grid-template-columns: 1fr 1fr; align-items: start; }
+@media (max-width: 820px) { .dos, .mitad { grid-template-columns: 1fr; } .barra .quien { margin-left: 0; } }
+
+/* ---------- botones y formularios ---------- */
+.boton, button { font: inherit; font-size: 14px; padding: 8px 16px; border: 1px solid var(--marca); border-radius: 6px;
+  background: var(--papel); color: var(--marca); cursor: pointer; text-decoration: none; display: inline-block; }
+.boton:hover, button:hover { background: #eef4fb; }
+.boton.principal, button.principal { background: var(--marca); color: var(--papel); }
+.boton.principal:hover, button.principal:hover { background: var(--marca-oscura); }
+button.enlace { background: none; border: 0; padding: 0; text-decoration: underline; font-size: 14px; color: var(--marca); }
+button.enlace.peligro { color: var(--alto); }
+
+label { display: block; font-size: 13px; margin-bottom: 4px; color: #3e4c59; }
+input[type=text], input[type=password], input[type=date], input[type=number], input[type=file], select, textarea {
+  width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--linea); border-radius: 6px; background: var(--papel); }
+input:focus, select:focus, textarea:focus { border-color: var(--marca); }
+textarea { min-height: 90px; resize: vertical; }
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+@media (max-width: 700px) { .campos { grid-template-columns: 1fr; } }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin: 6px 0; }
+.check input { width: 17px; height: 17px; margin: 0; accent-color: var(--marca); }
+.filtros { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; margin-bottom: 14px; }
+@media (max-width: 700px) { .filtros { grid-template-columns: 1fr; } }
+.pila > * + * { margin-top: 14px; }
+
+/* ---------- tablas ---------- */
+.tabla-envoltura { overflow-x: auto; background: var(--papel); border: 1px solid var(--linea); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 600; background: var(--marca); color: var(--papel); padding: 8px 10px; }
+td { padding: 8px 10px; border-top: 1px solid var(--gris); }
+tbody tr:nth-child(even) td { background: var(--suave); }
+tbody tr:hover td { background: #eef4fb; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.caja table th { background: var(--gris); color: var(--tinta); }
+
+/* ---------- nivel de riesgo (semáforo) ---------- */
+.nivel { display: inline-block; min-width: 70px; padding: 2px 10px; border-radius: 12px;
+  font-size: 12px; font-weight: 700; text-align: center; }
+.nivel.ALTO { background: var(--alto); color: var(--papel); }
+.nivel.MEDIO { background: var(--medio); color: var(--tinta); }
+.nivel.BAJO { background: var(--bajo); color: var(--papel); }
+
+.indice { display: flex; align-items: baseline; gap: 18px; margin: 4px 0 14px; }
+.indice .cifra { font-size: 64px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+.indice .cifra.ALTO { color: var(--alto); }
+.indice .cifra.MEDIO { color: #b07b00; }
+.indice .cifra.BAJO { color: var(--bajo); }
+.medidor { height: 14px; border-radius: 7px; background: var(--gris); position: relative; margin: 0 0 6px; }
+.medidor .relleno { height: 100%; border-radius: 7px; background: var(--marca); }
+.medidor .relleno.ALTO { background: var(--alto); }
+.medidor .relleno.MEDIO { background: var(--medio); }
+.medidor .relleno.BAJO { background: var(--bajo); }
+.medidor .marca-umbral { position: absolute; top: -6px; bottom: -6px; border-left: 2px dashed var(--tinta); }
+.leyenda-medidor { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 18px; }
+
+/* ---------- gráficas del dashboard (solo CSS) ---------- */
+.barras-v { display: flex; align-items: flex-end; gap: 10px; height: 220px; border-left: 2px solid var(--gris-medio);
+  border-bottom: 2px solid var(--gris-medio); padding: 0 8px; }
+.barras-v .col { flex: 1; display: flex; flex-direction: column-reverse; height: 100%; position: relative; }
+.barras-v .seg { width: 100%; border-top: 1px solid var(--papel); }
+.barras-v .col .seg:last-of-type { border-radius: 4px 4px 0 0; }
+.barras-v .rot { position: absolute; bottom: -22px; width: 100%; text-align: center; font-size: 12px; }
+.seg.ALTO, .muestra.ALTO { background: var(--alto); }
+.seg.MEDIO, .muestra.MEDIO { background: var(--medio); }
+.seg.BAJO, .muestra.BAJO { background: var(--bajo); }
+.leyenda { display: flex; gap: 16px; font-size: 12px; margin-top: 32px; }
+.muestra { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+.barras-h .fila { display: grid; grid-template-columns: 170px 1fr 34px; gap: 8px; align-items: center; margin: 9px 0; font-size: 13px; }
+.barras-h .pista { height: 20px; background: var(--suave); border-radius: 4px; }
+.barras-h .valor-b { height: 100%; background: var(--acento); border-radius: 4px; }
+
+/* ---------- avisos, vacíos, línea de tiempo ---------- */
+.aviso { padding: 10px 14px;}
