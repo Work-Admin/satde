@@ -1,0 +1,37 @@
+{% set titulo = "Ficha" %}
+{% include "header.html" %}
+
+<h1>{{ est.apellidos }} {{ est.nombres }}</h1>
+<p class="sub">Doc. {{ est.documento }} · {{ est.grupo }} (Grado {{ est.grado }}) · {{ est.estado }}</p>
+
+<section class="caja">
+  <h2>Índice de riesgo</h2>
+  <div class="indice">
+    <span class="cifra {{ calc.nivel }}">{{ calc.puntaje }}</span>
+    <span class="nivel {{ calc.nivel }}">RIESGO {{ calc.nivel }}</span>
+  </div>
+
+  <h2>¿Por qué?</h2>
+  {% if calc.detalle %}
+  <table>
+    <thead><tr><th>Factor</th><th class="num">Puntos</th></tr></thead>
+    <tbody>
+      {% for factor, puntos in calc.detalle %}
+      <tr><td>{{ factor }}</td><td class="num">+{{ puntos }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No presenta factores de riesgo registrados.</p>
+  {% endif %}
+</section>
+
+<section class="caja">
+  <h2>Datos</h2>
+  <p>Inasistencia: {{ est.porcentaje_inasistencia }} %</p>
+  <p>Áreas perdidas: {{ est.areas_perdidas }}</p>
+  <p>Acudiente: {{ est.acudiente_nombre }} {{ est.acudiente_telefono }}</p>
+</section>
+
+
+{% include "footer.html" %}

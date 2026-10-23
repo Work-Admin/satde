@@ -1,0 +1,27 @@
+{% set titulo = "Estudiantes" %}
+{% include "header.html" %}
+ 
+<h1>Estudiantes</h1>
+
+<div class="tabla-envoltura">
+  <table>
+    <thead>
+      <tr><th>Estudiante</th><th>Documento</th><th>Grupo</th><th class="num">Puntaje</th><th>Nivel</th></tr>
+    </thead>
+    <tbody>
+      {% for e in filas %}
+      <tr>
+        <td><a href="/estudiantes/{{ e.id }}/">{{ e.apellidos }} {{ e.nombres }}</a></td>
+        <td>{{ e.documento }}</td>
+        <td>{{ e.grupo }}</td>
+        <td class="num">{{ e.puntaje }}</td>
+        <td><span class="nivel {{ e.nivel }}">{{ e.nivel }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+
+{% include "footer.html" %}

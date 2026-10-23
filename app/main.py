@@ -147,3 +147,31 @@ def dashboard(request: Request, u=Depends(usuario_actual), con=Depends(get_db)):
     return render(request, "dashboard.html", u, con=con, total=total, niveles=niveles,
                   casos_abiertos=casos_abiertos, retencion=retencion, por_grado=por_grado,
                   max_grado=max_grado, factores=factores, max_factor=max_factor)
+    
+    
+#-------- estudiantes (paso 8)-------------------
+@app.get("/estudiantes/", response_class=HTMLResponse, include_in_schema=False)
+def estudiantes(request: Request, U=Depends(usuario_actual), con = Depends(get_db)):
+    filas = con.execute(
+        """SELECT e.id, e.documento, e.nombres, e.apellidos, e.puntaje, e.nivel, g.nombre AS grupo
+        FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id 
+        WHERE e.estado = 'Activo'
+        ORDER BY e.puntaje DESC"""
+    ).fetchall()
+    return render(request, "estudiantes.html", U, con=con, filas=filas)
+
+@app.get("/estudiantes/{est_id}/", response_class=HTMLResponse, include_in_schema=False)
+def ficha(request: Request, est_id: int, U=Depends(usuario_actual), con=Depends(get_db)):
+    fila = con.execute(
+        """SELECT e.*, g.nombre AS grupo, g.grado
+           FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id
+           WHERE e.id = ? """,
+           
+        (est_id,),
+    ).fetchone()
+    if fila is None:
+        flash(request, "El estudiante No Existe.", "error")
+        return ir("/estudiantes/")
+    est = dict(fila)
+    calc = riesgo.calcular(est, est["grado"])
+    return render(request, "ficha.html", U, con=con, est=est, calc=calc)
