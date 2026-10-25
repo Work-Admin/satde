@@ -165,7 +165,7 @@ def estudiantes(request: Request, U=Depends(usuario_actual), con = Depends(get_d
 @app.get("/estudiantes/nuevo/", response_class=HTMLResponse, include_in_schema=False)
 def nuevo_form(request: Request, U=Depends(puede_editar), con=Depends(get_db)):
     grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
-    return render(request, "estudiante_form.html", U, con=con, grupos=grupos)
+    return render(request, "estudiante_form.html", U, con=con, grupos=grupos, datos={})
 
 @app.get("/estudiantes/{est_id}/", response_class=HTMLResponse, include_in_schema=False)
 def ficha(request: Request, est_id: int, U=Depends(usuario_actual), con=Depends(get_db)):
@@ -183,12 +183,30 @@ def ficha(request: Request, est_id: int, U=Depends(usuario_actual), con=Depends(
     calc = riesgo.calcular(est, est["grado"])
     return render(request, "ficha.html", U, con=con, est=est, calc=calc)
 
+# @app.post("/estudiantes/nuevo/", include_in_schema=False)
+# async def crear_estudiante(request: Request, U=Depends(puede_editar), con=Depends(get_db)):
+#     datos = dict(await request.form())
+#     limpio = servicios.validar(con, datos)
+#     est_id, _ = servicios.guardar(con, limpio)
+#     auditar(con, U["usuario"], "Creó estudiante", limpio["documento"])
+#     con.commit()
+#     flash(request, "Estudiante guardado. Su indice de riesgo ya fue calculado.")
+#     return ir(f"/estudiantes/{est_id}/")
+
+
 @app.post("/estudiantes/nuevo/", include_in_schema=False)
-async def crear_estudiente(request: Request, U=Depends(puede_editar), con=Depends(get_db)):
+async def crear_estudiante(request: Request, u=Depends(puede_editar), con=Depends(get_db)):
     datos = dict(await request.form())
-    limpio = servicios.validar(con, datos)
-    est_id, _ = servicios.guardar(con, limpio)
-    auditar(con, U["usuario"], "Creó estudiante", limpio["documento"])
+    try:
+        limpio = servicios.validar(con, datos)
+        existe = con.execute("SELECT id FROM estudiantes WHERE documento = ?", (limpio["documento"],)).fetchone()
+        if existe:
+            raise ValueError(f"Ya existe un estudiante con el documento {limpio['documento']}")
+        est_id, _ = servicios.guardar(con, limpio)
+    except ValueError as e:
+        grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
+        return render(request, "estudiante_form.html", u, con=con, grupos=grupos, datos=datos, error=str(e))
+    auditar(con, u["usuario"], "Creó estudiante", limpio["documento"])
     con.commit()
-    flash(request, "Estudiante guardado. Su indice de riesgo ya fue calculado.")
+    flash(request, "Estudiante guardado. Su índice de riesgo ya fue calculado.")
     return ir(f"/estudiantes/{est_id}/")

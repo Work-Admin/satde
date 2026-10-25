@@ -3,20 +3,21 @@
 
 <h1>Nuevo estudiante</h1>
 <p class="sub">Al guardar se calcula el índice de riesgo.</p>
+{% if error %}<div class="aviso error" role="alert">{{ error }}</div>{% endif %}
 
 <form method="post" class="pila">
   <div class="campos">
     <div>
       <label for="documento">Documento</label>
-      <input type="text" id="documento" name="documento" required>
+      <input type="text" id="documento" name="documento" value="{{ datos.documento or '' }}" required>
     </div>
     <div>
       <label for="nombres">Nombres</label>
-      <input type="text" id="nombres" name="nombres" required>
+      <input type="text" id="nombres" name="nombres" value="{{ datos.nombres or '' }}" required>
     </div>
     <div>
       <label for="apellidos">Apellidos</label>
-      <input type="text" id="apellidos" name="apellidos" required>
+      <input type="text" id="apellidos" name="apellidos" value="{{ datos.apellidos or '' }}" required>
     </div>
     <div>
       <label for="fecha_nacimiento">Fecha de nacimiento</label>
@@ -25,7 +26,7 @@
     <div>
       <label for="grupo">Grupo</label>
       <select id="grupo" name="grupo">
-        {% for g in grupos %}<option>{{ g }}</option>{% endfor %}
+        {% for g in grupos %}<option {% if g == datos.grupo %}selected{% endif %}>{{ g }}</option>{% endfor %}
       </select>
     </div>
     <div>
