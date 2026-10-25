@@ -2,6 +2,9 @@
 {% include "header.html" %}
  
 <h1>Estudiantes</h1>
+{% if usuario.rol != 'docente' %}
+<p><a class="boton principal" href="/estudiantes/nuevo/">Nuevo Estudiante</a></p>
+{% endif %}
 
 <div class="tabla-envoltura">
   <table>

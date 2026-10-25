@@ -1,0 +1,47 @@
+{% set titulo = "Nuevo estudiante" %}
+{% include "header.html" %}
+
+<h1>Nuevo estudiante</h1>
+<p class="sub">Al guardar se calcula el índice de riesgo.</p>
+
+<form method="post" class="pila">
+  <div class="campos">
+    <div>
+      <label for="documento">Documento</label>
+      <input type="text" id="documento" name="documento" required>
+    </div>
+    <div>
+      <label for="nombres">Nombres</label>
+      <input type="text" id="nombres" name="nombres" required>
+    </div>
+    <div>
+      <label for="apellidos">Apellidos</label>
+      <input type="text" id="apellidos" name="apellidos" required>
+    </div>
+    <div>
+      <label for="fecha_nacimiento">Fecha de nacimiento</label>
+      <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" required>
+    </div>
+    <div>
+      <label for="grupo">Grupo</label>
+      <select id="grupo" name="grupo">
+        {% for g in grupos %}<option>{{ g }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="porcentaje_inasistencia">% de inasistencia</label>
+      <input type="number" id="porcentaje_inasistencia" name="porcentaje_inasistencia" min="0" max="100" step="0.1" value="0">
+    </div>
+    <div>
+      <label for="areas_perdidas">Áreas perdidas</label>
+      <input type="number" id="areas_perdidas" name="areas_perdidas" min="0" max="15" value="0">
+    </div>
+  </div>
+
+  <div>
+    <button class="principal" type="submit">Guardar</button>
+    <a href="/estudiantes/">Cancelar</a>
+  </div>
+</form>
+
+{% include "footer.html" %}
