@@ -160,12 +160,13 @@ def estudiantes(request: Request, U=Depends(usuario_actual), con = Depends(get_d
     ).fetchall()
     return render(request, "estudiantes.html", U, con=con, filas=filas)
 
-
+def _form_ctx(con) -> dict:
+    grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
+    return {"grupos": grupos, "factores": riesgo.FACTORES_CONTEXTO, "estados": servicios.ESTADOS}
 
 @app.get("/estudiantes/nuevo/", response_class=HTMLResponse, include_in_schema=False)
-def nuevo_form(request: Request, U=Depends(puede_editar), con=Depends(get_db)):
-    grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
-    return render(request, "estudiante_form.html", U, con=con, grupos=grupos, datos={})
+def nuevo_form(request: Request, u=Depends(puede_editar), con=Depends(get_db)):
+    return render(request, "estudiante_form.html", u, con=con, datos={"estado": "Activo"}, **_form_ctx(con))
 
 @app.get("/estudiantes/{est_id}/", response_class=HTMLResponse, include_in_schema=False)
 def ficha(request: Request, est_id: int, U=Depends(usuario_actual), con=Depends(get_db)):
@@ -204,8 +205,8 @@ async def crear_estudiante(request: Request, u=Depends(puede_editar), con=Depend
             raise ValueError(f"Ya existe un estudiante con el documento {limpio['documento']}")
         est_id, _ = servicios.guardar(con, limpio)
     except ValueError as e:
-        grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
-        return render(request, "estudiante_form.html", u, con=con, grupos=grupos, datos=datos, error=str(e))
+#        grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
+        return render(request, "estudiante_form.html", u, con=con,  datos=datos, error=str(e), **_form_ctx(con))
     auditar(con, u["usuario"], "Creó estudiante", limpio["documento"])
     con.commit()
     flash(request, "Estudiante guardado. Su índice de riesgo ya fue calculado.")

@@ -1,43 +1,124 @@
-{% set titulo = "Nuevo estudiante" %}
-{% include "header.html" %}
+{% set titulo = "Nuevo estudiante" %} {% include "header.html" %}
 
 <h1>Nuevo estudiante</h1>
 <p class="sub">Al guardar se calcula el índice de riesgo.</p>
-{% if error %}<div class="aviso error" role="alert">{{ error }}</div>{% endif %}
+{% if error %}
+<div class="aviso error" role="alert">{{ error }}</div>
+{% endif %}
 
 <form method="post" class="pila">
   <div class="campos">
     <div>
       <label for="documento">Documento</label>
-      <input type="text" id="documento" name="documento" value="{{ datos.documento or '' }}" required>
+      <input
+        type="text"
+        id="documento"
+        name="documento"
+        value="{{ datos.documento or '' }}"
+        required
+      />
     </div>
     <div>
       <label for="nombres">Nombres</label>
-      <input type="text" id="nombres" name="nombres" value="{{ datos.nombres or '' }}" required>
+      <input
+        type="text"
+        id="nombres"
+        name="nombres"
+        value="{{ datos.nombres or '' }}"
+        required
+      />
     </div>
     <div>
       <label for="apellidos">Apellidos</label>
-      <input type="text" id="apellidos" name="apellidos" value="{{ datos.apellidos or '' }}" required>
+      <input
+        type="text"
+        id="apellidos"
+        name="apellidos"
+        value="{{ datos.apellidos or '' }}"
+        required
+      />
     </div>
     <div>
       <label for="fecha_nacimiento">Fecha de nacimiento</label>
-      <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" required>
+      <input
+        type="date"
+        id="fecha_nacimiento"
+        name="fecha_nacimiento"
+        required
+      />
     </div>
     <div>
       <label for="grupo">Grupo</label>
       <select id="grupo" name="grupo">
-        {% for g in grupos %}<option {% if g == datos.grupo %}selected{% endif %}>{{ g }}</option>{% endfor %}
+        {% for g in grupos %}
+        <option {% if g=="datos.grupo" %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
       </select>
     </div>
     <div>
       <label for="porcentaje_inasistencia">% de inasistencia</label>
-      <input type="number" id="porcentaje_inasistencia" name="porcentaje_inasistencia" min="0" max="100" step="0.1" value="0">
+      <input
+        type="number"
+        id="porcentaje_inasistencia"
+        name="porcentaje_inasistencia"
+        min="0"
+        max="100"
+        step="0.1"
+        value="0"
+      />
     </div>
     <div>
       <label for="areas_perdidas">Áreas perdidas</label>
-      <input type="number" id="areas_perdidas" name="areas_perdidas" min="0" max="15" value="0">
+      <input
+        type="number"
+        id="areas_perdidas"
+        name="areas_perdidas"
+        min="0"
+        max="15"
+        value="0"
+      />
     </div>
   </div>
+
+  <div>
+    <label for="estado">Estado</label>
+    <select id="estado" name="estado">
+      {% for s in estados %}
+      <option {% if s=="datos.estado" %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="acudiente_nombre">Nombre del acudiente</label>
+    <input
+      type="text"
+      id="acudiente_nombre"
+      name="acudiente_nombre"
+      value="{{ datos.acudiente_nombre or '' }}"
+    />
+  </div>
+  <div>
+    <label for="acudiente_telefono">Teléfono del acudiente</label>
+    <input
+      type="text"
+      id="acudiente_telefono"
+      name="acudiente_telefono"
+      value="{{ datos.acudiente_telefono or '' }}"
+      inputmode="tel"
+    />
+  </div>
+
+  <fieldset class="caja">
+    <legend>Factores de contexto</legend>
+    <div class="campos">
+      {% for campo, etiqueta, puntos in factores %}
+      <label class="check">
+        <input type="checkbox" name="{{ campo }}" value="1" {% if datos[campo] == '1' %}checked{% endif %}>
+        {{ etiqueta }} (+{{puntos}})
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
 
   <div>
     <button class="principal" type="submit">Guardar</button>
