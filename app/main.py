@@ -211,3 +211,33 @@ async def crear_estudiante(request: Request, u=Depends(puede_editar), con=Depend
     con.commit()
     flash(request, "Estudiante guardado. Su índice de riesgo ya fue calculado.")
     return ir(f"/estudiantes/{est_id}/")
+
+@app.get("/estudiantes/{est_id}/editar/", response_class=HTMLResponse, include_in_schema=False)
+def editar_form(request: Request, est_id: int, u=Depends(puede_editar), con=Depends(get_db)):
+    fila = con.execute(
+        """SELECT e.*, g.nombre AS grupo
+           FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id
+           WHERE e.id = ?""",
+        (est_id,),
+    ).fetchone()
+    if fila is None:
+        flash(request, "El estudiante no existe.", "error")
+        return ir("/estudiantes/")
+    return render(request, "estudiante_form.html", u, con=con, datos=dict(fila), est_id=est_id, **_form_ctx(con))
+        
+@app.post("/estudiantes/{est_id}/editar/", include_in_schema=False)
+async def guardar_edicion(request: Request, est_id: int, u=Depends(puede_editar), con=Depends(get_db)):
+    datos = dict(await request.form())
+    try:
+        limpio = servicios.validar(con, datos)
+        otro = con.execute("SELECT id FROM estudiantes WHERE documento = ?", (limpio["documento"],)).fetchone()
+        if otro and otro["id"] != est_id:
+            raise ValueError(f"El documento {limpio['documento']} ya pertenece a otro estudiante")
+        servicios.guardar(con, limpio, est_id)
+    except ValueError as e:
+        return render(request, "estudiante_form.html", u, con=con, datos=datos, est_id=est_id,
+                      error=str(e), **_form_ctx(con))
+    auditar(con, u["usuario"], "Editó estudiante", limpio["documento"])
+    con.commit()
+    flash(request, "Cambios guardados. El índice de riesgo se recalculó.")
+    return ir(f"/estudiantes/{est_id}/")

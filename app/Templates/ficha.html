@@ -5,6 +5,9 @@
   Doc. {{ est.documento }} · {{ est.grupo }} (Grado {{ est.grado }}) · {{
   est.estado }}
 </p>
+{% if usuario.rol != 'docente' %}
+<p><a class="boton" href="/estudiantes/{{est.id}}/editar/">Editar</a></p>
+{% endif %}
 
 <div class="rejilla mitad">
   <section class="caja">
