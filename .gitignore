@@ -220,3 +220,4 @@ __marimo__/
 .streamlit/secrets.toml
 # Base de datos local (cada quien genera la suya con datos simulados)
 satde.db
+.pytest_cache/
