@@ -4,6 +4,7 @@ Ejecutar:  uvicorn app.main:app --reload
 """
 import os
 from contextlib import asynccontextmanager
+from datetime import date
 
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -12,8 +13,10 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import api, auth, riesgo, seed, servicios
-from .auth import NoAutenticado, SinPermiso, usuario_actual, puede_editar 
+from .auth import NoAutenticado, SinPermiso, puede_editar, solo_orientador, usuario_actual
 from .db import BASE_DIR, auditar, get_db
+
+
 
 APP_DIR = BASE_DIR / "app"
 
@@ -41,6 +44,7 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
+templates.env.filters["fecha"] = lambda iso: date.fromisoformat(iso[:10]).strftime("%d/%m/%Y") if iso else ""
 app.include_router(api.router)
 
 # ---------- utilidades ----------
@@ -241,3 +245,129 @@ async def guardar_edicion(request: Request, est_id: int, u=Depends(puede_editar)
     con.commit()
     flash(request, "Cambios guardados. El índice de riesgo se recalculó.")
     return ir(f"/estudiantes/{est_id}/")
+
+@app.get("/seguimiento/alertas/", response_class=HTMLResponse, include_in_schema=False)
+def alertas(request: Request, u=Depends(usuario_actual), con=Depends(get_db)):
+    filas = con.execute(
+        """SELECT a.id, a.fecha, a.puntaje, e.id AS est_id,
+                  e.apellidos || ' ' || e.nombres AS estudiante, g.nombre AS grupo
+           FROM alertas a
+           JOIN estudiantes e ON e.id = a.estudiante_id
+           JOIN grupos g ON g.id = e.grupo_id
+           WHERE a.estado = 'Nueva'
+           ORDER BY a.puntaje DESC"""
+    ).fetchall()
+    return render(request, "alertas.html", u, con=con, filas=filas, umbral=riesgo.UMBRAL_ALTO)
+
+
+@app.post("/seguimiento/alertas/{alerta_id}/abrir", include_in_schema=False)
+def abrir_caso(request: Request, alerta_id: int, u=Depends(solo_orientador), con=Depends(get_db)):
+    a = con.execute("SELECT * FROM alertas WHERE id = ? AND estado = 'Nueva'", (alerta_id,)).fetchone()
+    if a is None:
+        flash(request, "La alerta ya fue atendida o no existe.", "error")
+        return ir("/seguimiento/alertas/")
+    con.execute("UPDATE alertas SET estado = 'Atendida' WHERE id = ?", (alerta_id,))
+    cur = con.execute(
+        """INSERT INTO casos (estudiante_id, alerta_id, responsable_id, fecha_apertura, puntaje_apertura)
+           VALUES (?, ?, ?, ?, ?)""",
+        (a["estudiante_id"], alerta_id, u["id"], date.today().isoformat(), a["puntaje"]),
+    )
+    auditar(con, u["usuario"], "Abrió caso", f"caso {cur.lastrowid}")
+    con.commit()
+    flash(request, f"Caso #{cur.lastrowid} abierto.")
+    return ir(f"/seguimiento/casos/{cur.lastrowid}/")
+
+
+@app.post("/seguimiento/alertas/{alerta_id}/descartar", include_in_schema=False)
+def descartar_alerta(request: Request, alerta_id: int, u=Depends(solo_orientador), con=Depends(get_db)):
+    con.execute("UPDATE alertas SET estado = 'Descartada' WHERE id = ? AND estado = 'Nueva'", (alerta_id,))
+    auditar(con, u["usuario"], "Descartó alerta", f"alerta {alerta_id}")
+    con.commit()
+    flash(request, "Alerta descartada.")
+    return ir("/seguimiento/alertas/")
+
+TIPOS_INTERVENCION = ["Citación al acudiente", "Entrevista con el estudiante", "Visita domiciliaria",
+                      "Remisión a entidad externa", "Plan de apoyo académico", "Otro"]
+RESULTADOS_CIERRE = ["Retenido (continúa estudiando)", "Desertó", "Trasladado a otra institución"]
+
+
+@app.get("/seguimiento/casos/", response_class=HTMLResponse, include_in_schema=False)
+def casos(request: Request, u=Depends(usuario_actual), con=Depends(get_db)):
+    filas = con.execute(
+        """SELECT c.id, c.fecha_apertura, c.estado, c.resultado,
+                  e.apellidos || ' ' || e.nombres AS estudiante, g.nombre AS grupo,
+                  us.nombre AS responsable,
+                  (SELECT COUNT(*) FROM intervenciones i WHERE i.caso_id = c.id) AS n_interv
+           FROM casos c
+           JOIN estudiantes e ON e.id = c.estudiante_id
+           JOIN grupos g ON g.id = e.grupo_id
+           JOIN usuarios us ON us.id = c.responsable_id
+           ORDER BY c.estado, c.id DESC"""
+    ).fetchall()
+    return render(request, "casos.html", u, con=con, filas=filas)
+
+
+@app.get("/seguimiento/casos/{caso_id}/", response_class=HTMLResponse, include_in_schema=False)
+def caso(request: Request, caso_id: int, u=Depends(usuario_actual), con=Depends(get_db)):
+    c = con.execute(
+        """SELECT c.*, e.id AS est_id, e.apellidos || ' ' || e.nombres AS estudiante,
+                  g.nombre AS grupo, us.usuario AS responsable
+           FROM casos c
+           JOIN estudiantes e ON e.id = c.estudiante_id
+           JOIN grupos g ON g.id = e.grupo_id
+           JOIN usuarios us ON us.id = c.responsable_id
+           WHERE c.id = ?""",
+        (caso_id,),
+    ).fetchone()
+    if c is None:
+        flash(request, "El caso no existe.", "error")
+        return ir("/seguimiento/casos/")
+    interv = con.execute(
+        """SELECT i.*, us.usuario FROM intervenciones i
+           JOIN usuarios us ON us.id = i.usuario_id
+           WHERE i.caso_id = ? ORDER BY i.fecha DESC, i.id DESC""",
+        (caso_id,),
+    ).fetchall()
+    return render(request, "caso.html", u, con=con, c=c, interv=interv, tipos=TIPOS_INTERVENCION,
+                  resultados=RESULTADOS_CIERRE, hoy=date.today().isoformat())
+
+
+@app.post("/seguimiento/casos/{caso_id}/intervenciones", include_in_schema=False)
+def registrar_intervencion(request: Request, caso_id: int, fecha: str = Form(...), tipo: str = Form(...),
+                           descripcion: str = Form(""), u=Depends(solo_orientador), con=Depends(get_db)):
+    error = None
+    if not con.execute("SELECT 1 FROM casos WHERE id = ? AND estado = 'Abierto'", (caso_id,)).fetchone():
+        error = "El caso no existe o está cerrado; no admite intervenciones."
+    elif tipo not in TIPOS_INTERVENCION:
+        error = "Tipo de intervención no válido."
+    elif not descripcion.strip():
+        error = "Escriba una descripción de la intervención."
+    elif fecha > date.today().isoformat():
+        error = "La fecha de la intervención no puede ser futura."
+    if error:
+        flash(request, error, "error")
+    else:
+        con.execute(
+            "INSERT INTO intervenciones (caso_id, fecha, tipo, descripcion, usuario_id) VALUES (?, ?, ?, ?, ?)",
+            (caso_id, fecha, tipo, descripcion.strip(), u["id"]),
+        )
+        auditar(con, u["usuario"], "Registró intervención", f"caso {caso_id}")
+        con.commit()
+        flash(request, "Intervención guardada.")
+    return ir(f"/seguimiento/casos/{caso_id}/")
+
+
+@app.post("/seguimiento/casos/{caso_id}/cerrar", include_in_schema=False)
+def cerrar_caso(request: Request, caso_id: int, resultado: str = Form(...),
+                u=Depends(solo_orientador), con=Depends(get_db)):
+    if resultado not in RESULTADOS_CIERRE:
+        flash(request, "Resultado de cierre no válido.", "error")
+        return ir(f"/seguimiento/casos/{caso_id}/")
+    con.execute(
+        "UPDATE casos SET estado = 'Cerrado', resultado = ?, fecha_cierre = ? WHERE id = ? AND estado = 'Abierto'",
+        (resultado, date.today().isoformat(), caso_id),
+    )
+    auditar(con, u["usuario"], "Cerró caso", f"caso {caso_id}: {resultado}")
+    con.commit()
+    flash(request, "Caso cerrado.")
+    return ir(f"/seguimiento/casos/{caso_id}/")

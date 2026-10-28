@@ -1,0 +1,55 @@
+{% set titulo = "Caso #" ~ c.id %}
+{% include "header.html" %}
+
+<h1>Caso #{{ c.id }} · <a href="/estudiantes/{{ c.est_id }}/">{{ c.estudiante }}</a></h1>
+<p class="sub">{{ c.grupo }} · abierto el {{ c.fecha_apertura | fecha }} · responsable {{ c.responsable }}
+  · riesgo al abrir: {{ c.puntaje_apertura }} puntos
+  {% if c.estado == 'Cerrado' %} · cerrado el {{ c.fecha_cierre | fecha }}: {{ c.resultado }}{% endif %}</p>
+
+<div class="rejilla dos">
+  <section class="caja">
+    <h2>Intervenciones</h2>
+    {% if interv %}
+    <ol class="linea-tiempo">
+      {% for i in interv %}
+      <li>
+        <span class="meta">{{ i.fecha | fecha }} · {{ i.usuario }}</span>
+        <strong>{{ i.tipo }}</strong>
+        {{ i.descripcion }}
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="vacio">Sin intervenciones. Registre la primera en el formulario.</div>
+    {% endif %}
+  </section>
+
+  <div>
+    {% if c.estado == 'Abierto' and usuario.rol == 'orientador' %}
+    <form class="caja pila" method="post" action="/seguimiento/casos/{{ c.id }}/intervenciones">
+      <h2>Registrar intervención</h2>
+      <div><label for="fecha">Fecha</label>
+        <input type="date" id="fecha" name="fecha" value="{{ hoy }}" max="{{ hoy }}" required></div>
+      <div><label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo">{% for t in tipos %}<option>{{ t }}</option>{% endfor %}</select></div>
+      <div><label for="descripcion">Descripción</label>
+        <textarea id="descripcion" name="descripcion" required></textarea></div>
+      <button class="principal" type="submit">Guardar intervención</button>
+    </form>
+
+    <form class="caja pila" method="post" action="/seguimiento/casos/{{ c.id }}/cerrar">
+      <h2>Cerrar caso</h2>
+      <select name="resultado" aria-label="Resultado del caso">
+        {% for r in resultados %}<option>{{ r }}</option>{% endfor %}
+      </select>
+      <button type="submit">Cerrar caso</button>
+    </form>
+    {% elif c.estado == 'Abierto' %}
+    <div class="caja">Solo el orientador puede registrar intervenciones o cerrar el caso.</div>
+    {% else %}
+    <div class="caja">Caso cerrado: {{ c.resultado }}.</div>
+    {% endif %}
+  </div>
+</div>
+
+{% include "footer.html" %}

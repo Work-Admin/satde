@@ -142,3 +142,12 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ---------- avisos, vacíos, línea de tiempo ---------- */
 .aviso { padding: 10px 14px;}
+
+.linea-tiempo { list-style: none; margin: 0; padding: 0 0 0 6px; }
+.linea-tiempo li { padding: 0 0 18px 18px; border-left: 2px solid var(--linea); position: relative; }
+.linea-tiempo li::before { content: ""; position: absolute; left: -7px; top: 3px; width: 12px; height: 12px;
+  background: var(--papel); border: 3px solid var(--marca); border-radius: 50%; }
+.linea-tiempo .meta { font-size: 12px; color: #616e7c; }
+.linea-tiempo strong { display: block; margin: 2px 0; }
+
+form.en-linea { display: inline; }

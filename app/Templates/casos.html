@@ -1,0 +1,33 @@
+{% set titulo = "Casos" %}
+{% include "header.html" %}
+
+<h1>Casos de seguimiento</h1>
+<p class="sub">Un caso se abre desde una alerta y reúne todas las intervenciones con el estudiante.</p>
+
+{% if filas %}
+<div class="tabla-envoltura">
+  <table>
+    <thead>
+      <tr><th class="num">#</th><th>Estudiante</th><th>Grupo</th><th>Apertura</th><th>Estado</th>
+          <th class="num">Intervenciones</th><th>Responsable</th></tr>
+    </thead>
+    <tbody>
+      {% for c in filas %}
+      <tr>
+        <td class="num"><a href="/seguimiento/casos/{{ c.id }}/">{{ c.id }}</a></td>
+        <td><a href="/seguimiento/casos/{{ c.id }}/">{{ c.estudiante }}</a></td>
+        <td>{{ c.grupo }}</td>
+        <td>{{ c.fecha_apertura | fecha }}</td>
+        <td>{{ c.estado }}{% if c.resultado %}: {{ c.resultado }}{% endif %}</td>
+        <td class="num">{{ c.n_interv }}</td>
+        <td>{{ c.responsable }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="vacio">Aún no hay casos. Abra uno desde la lista de <a href="/seguimiento/alertas/">alertas</a>.</div>
+{% endif %}
+
+{% include "footer.html" %}

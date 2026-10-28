@@ -1,0 +1,39 @@
+{% set titulo = "Alertas" %}
+{% include "header.html" %}
+
+<h1>Alertas nuevas ({{ filas | length }})</h1>
+<p class="sub">Se generan automáticamente cuando un estudiante activo llega a riesgo alto ({{ umbral }} puntos o más).
+  Solo el orientador puede abrir un caso o descartar la alerta.</p>
+
+{% if filas %}
+<div class="tabla-envoltura">
+  <table>
+    <thead>
+      <tr><th>Fecha</th><th>Estudiante</th><th>Grupo</th><th class="num">Puntaje</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+      {% for a in filas %}
+      <tr>
+        <td>{{ a.fecha | fecha }}</td>
+        <td><a href="/estudiantes/{{ a.est_id }}/">{{ a.estudiante }}</a></td>
+        <td>{{ a.grupo }}</td>
+        <td class="num">{{ a.puntaje }}</td>
+        <td>
+          {% if usuario.rol == 'orientador' %}
+          <form class="en-linea" method="post" action="/seguimiento/alertas/{{ a.id }}/abrir"><button class="enlace">Abrir caso</button></form>
+          ·
+          <form class="en-linea" method="post" action="/seguimiento/alertas/{{ a.id }}/descartar"><button class="enlace peligro">Descartar</button></form>
+          {% else %}
+          Solo lectura
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="vacio">No hay alertas nuevas. Cuando un estudiante llegue a {{ umbral }} puntos aparecerá aquí.</div>
+{% endif %}
+
+{% include "footer.html" %}
