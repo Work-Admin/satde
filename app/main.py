@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import auth, riesgo, seed, servicios
+from . import api, auth, riesgo, seed, servicios
 from .auth import NoAutenticado, SinPermiso, usuario_actual, puede_editar 
 from .db import BASE_DIR, auditar, get_db
 
@@ -41,7 +41,7 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
-
+app.include_router(api.router)
 
 # ---------- utilidades ----------
 def flash(request: Request, texto: str, tipo: str = "ok") -> None:
