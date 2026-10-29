@@ -1,5 +1,7 @@
 """Lógica de negocio: recálculo del riesgo, alertas y validación de estudiantes."""
 import sqlite3
+import io
+import pandas as pd
 from datetime import date, datetime
 
 from . import riesgo
@@ -37,7 +39,7 @@ def parse_fecha(valor) -> str:
     if isinstance(valor, (datetime, date)):
         return (valor.date() if isinstance(valor, datetime) else valor).isoformat()
     txt = str(valor or "").strip()
-    for fmt in ("%Y-%m-%d", "%d/%m/%Y"):
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y-%m-%d %H:%M:%S"):
         try:
             return datetime.strptime(txt, fmt).date().isoformat()
         except ValueError:
@@ -111,3 +113,55 @@ def guardar(con: sqlite3.Connection, limpio: dict, estudiante_id: int | None = N
         estudiante_id, creado = cur.lastrowid, True
     recalcular(con, estudiante_id)
     return estudiante_id, creado
+
+
+COLUMNAS_PLANTILLA = [
+    "documento", "nombres", "apellidos", "fecha_nacimiento", "grupo", "estado",
+    "acudiente_nombre", "acudiente_telefono", "porcentaje_inasistencia", "areas_perdidas",
+    *CAMPOS_BOOL,
+]
+OBLIGATORIAS = ["documento", "nombres", "apellidos", "fecha_nacimiento", "grupo"]
+
+
+def leer_archivo(nombre: str, contenido: bytes) -> list[dict]:
+    nombre = nombre.lower()
+    if nombre.endswith(".xlsx"):
+        df = pd.read_excel(io.BytesIO(contenido), dtype=str)
+    elif nombre.endswith(".csv"):
+        texto = contenido.decode("utf-8-sig", errors="replace")
+        df = pd.read_csv(io.StringIO(texto), sep=None, engine="python", dtype=str)
+    else:
+        raise ValueError("Formato no admitido: suba un archivo .csv o .xlsx")
+    df.columns = [str(c).strip().lower() for c in df.columns]
+    df = df.dropna(how="all").fillna("")
+    return df.to_dict(orient="records")
+
+
+def importar(con: sqlite3.Connection, nombre: str, contenido: bytes) -> dict:
+    filas = leer_archivo(nombre, contenido)
+    if not filas:
+        raise ValueError("El archivo no tiene filas con datos")
+    faltan = [c for c in OBLIGATORIAS if c not in filas[0]]
+    if faltan:
+        raise ValueError("Faltan columnas en el archivo: " + ", ".join(faltan))
+    creados = actualizados = 0
+    errores: list[dict] = []
+    vistos: set[str] = set()
+    for n, fila in enumerate(filas, start=2):
+        try:
+            limpio = validar(con, fila)
+            if limpio["documento"] in vistos:
+                raise ValueError(f"Documento {limpio['documento']} repetido dentro del archivo")
+            vistos.add(limpio["documento"])
+            _, creado = guardar(con, limpio)
+            creados += creado
+            actualizados += not creado
+        except ValueError as e:
+            errores.append({"fila": n, "motivo": str(e)})
+    return {"creados": creados, "actualizados": actualizados, "errores": errores}
+
+
+def plantilla_csv() -> str:
+    ejemplo = ["1020304050", "Ana María", "Pérez Gómez", "2014-05-02", "6-A", "Activo",
+               "Luz Gómez", "3001234567", "12,5", "1", "0", "1", "0", "0", "0", "0", "0"]
+    return ";".join(COLUMNAS_PLANTILLA) + "\n" + ";".join(ejemplo) + "\n"

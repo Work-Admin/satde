@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from . import riesgo, servicios
@@ -162,3 +162,19 @@ def resumen(u=Depends(usuario_actual), con: sqlite3.Connection = Depends(get_db)
         "alertas_nuevas": con.execute("SELECT COUNT(*) FROM alertas WHERE estado = 'Nueva'").fetchone()[0],
         "casos_abiertos": con.execute("SELECT COUNT(*) FROM casos WHERE estado = 'Abierto'").fetchone()[0],
     }
+    
+class ResultadoImportacion(BaseModel):
+    creados: int
+    actualizados: int
+    errores: list[dict]
+
+
+@router.post("/upload", response_model=ResultadoImportacion, summary="Importar estudiantes desde CSV o Excel")
+async def upload(archivo: UploadFile = File(...), u=Depends(puede_editar), con: sqlite3.Connection = Depends(get_db)):
+    try:
+        res = servicios.importar(con, archivo.filename or "", await archivo.read())
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    auditar(con, u["usuario"], "Importó estudiantes (API)", archivo.filename or "")
+    con.commit()
+    return res

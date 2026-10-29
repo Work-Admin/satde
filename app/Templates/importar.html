@@ -1,0 +1,35 @@
+{% set titulo = "Importar" %}
+{% include "header.html" %}
+
+<h1>Importar estudiantes desde CSV o Excel</h1>
+<p class="sub">Si el documento ya existe, el estudiante se actualiza y se recalcula su riesgo.</p>
+
+{% if error %}<div class="aviso error" role="alert">{{ error }}</div>{% endif %}
+
+<section class="caja pila">
+  <p>Use la plantilla: una fila por estudiante. Se acepta CSV separado por punto y coma o Excel (.xlsx, primera hoja).
+     En los factores de contexto escriba 1 (sí) o 0 (no).</p>
+  <p><a class="boton" href="/estudiantes/plantilla.csv">Descargar plantilla</a></p>
+  <form method="post" enctype="multipart/form-data" class="filtros" style="grid-template-columns: 1fr auto; margin: 0">
+    <input type="file" name="archivo" accept=".csv,.xlsx" required aria-label="Archivo CSV o Excel">
+    <button class="principal" type="submit">Importar</button>
+  </form>
+</section>
+
+{% if resultado %}
+<section class="caja">
+  <h2>Resultado</h2>
+  <p>Creados: {{ resultado.creados }} · Actualizados: {{ resultado.actualizados }} · Con errores: {{ resultado.errores | length }}</p>
+  {% if resultado.errores %}
+  <table>
+    <thead><tr><th class="num">Fila</th><th>Motivo</th></tr></thead>
+    <tbody>
+      {% for e in resultado.errores %}<tr><td class="num">{{ e.fila }}</td><td>{{ e.motivo }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  <p class="nota-pie">Corrija esas filas en el archivo y vuelva a importarlo; las filas correctas ya quedaron guardadas.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% include "footer.html" %}

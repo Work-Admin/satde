@@ -6,8 +6,8 @@ import os
 from contextlib import asynccontextmanager
 from datetime import date
 
-from fastapi import Depends, FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -167,6 +167,29 @@ def estudiantes(request: Request, U=Depends(usuario_actual), con = Depends(get_d
 def _form_ctx(con) -> dict:
     grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
     return {"grupos": grupos, "factores": riesgo.FACTORES_CONTEXTO, "estados": servicios.ESTADOS}
+
+@app.get("/estudiantes/importar/", response_class=HTMLResponse, include_in_schema=False)
+def importar_form(request: Request, u=Depends(puede_editar), con=Depends(get_db)):
+    return render(request, "importar.html", u, con=con)
+
+
+@app.post("/estudiantes/importar/", response_class=HTMLResponse, include_in_schema=False)
+async def importar_estudiantes(request: Request, archivo: UploadFile = File(...),
+                               u=Depends(puede_editar), con=Depends(get_db)):
+    try:
+        resultado = servicios.importar(con, archivo.filename or "", await archivo.read())
+    except ValueError as e:
+        return render(request, "importar.html", u, con=con, error=str(e))
+    auditar(con, u["usuario"], "Importó estudiantes",
+            f"{archivo.filename}: {resultado['creados']} creados, {resultado['actualizados']} actualizados")
+    con.commit()
+    return render(request, "importar.html", u, con=con, resultado=resultado)
+
+
+@app.get("/estudiantes/plantilla.csv", include_in_schema=False)
+def plantilla(u=Depends(usuario_actual)):
+    return PlainTextResponse("\ufeff" + servicios.plantilla_csv(), media_type="text/csv",
+                             headers={"Content-Disposition": "attachment; filename=plantilla_estudiantes.csv"})
 
 @app.get("/estudiantes/nuevo/", response_class=HTMLResponse, include_in_schema=False)
 def nuevo_form(request: Request, u=Depends(puede_editar), con=Depends(get_db)):

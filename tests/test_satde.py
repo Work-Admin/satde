@@ -109,3 +109,13 @@ def test_riesgo_alto_genera_alerta(cliente):
     assert r.json()["nivel"] == "ALTO"
     despues = cliente.get("/api/dashboard/resumen").json()["alertas_nuevas"]
     assert despues == antes + 1
+    
+def test_importar_csv_con_un_error(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    csv = ("documento;nombres;apellidos;fecha_nacimiento;grupo;porcentaje_inasistencia;areas_perdidas\n"
+           "3000000001;Eva;Sol;2013-03-03;7-A;21;0\n"
+           "3000000002;Leo;Mar;2013-03-03;9-Z;0;0\n")
+    r = cliente.post("/api/upload", files={"archivo": ("estudiantes.csv", csv.encode(), "text/csv")})
+    assert r.status_code == 200
+    assert r.json()["creados"] == 1
+    assert r.json()["errores"][0]["fila"] == 3
