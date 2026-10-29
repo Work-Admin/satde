@@ -99,6 +99,7 @@ el SIMAT, pueda consultar o enviar información. La documentación de la API se 
 | GET | `/api/students/{id}/observations` | Ver el historial de intervenciones |
 | POST | `/api/interventions` | Registrar una intervención en un caso |
 | GET | `/api/dashboard/resumen` | Consultar los indicadores del tablero |
+| POST | `/api/upload` | Importar estudiantes desde un archivo CSV o Excel |
 
 La información se guarda en una base de datos SQLite con siete tablas: usuarios, grupos,
 estudiantes, alertas, casos, intervenciones y auditoría. En esta última queda registrado quién
@@ -110,7 +111,7 @@ sesión de cada usuario va en una cookie firmada que no se puede alterar.
 
 ## Pruebas
 
-Escribimos doce pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé
+Escribimos trece pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé
 lo que debe dar, que nadie entre sin iniciar sesión, que un docente no pueda registrar
 estudiantes, que no se acepten documentos repetidos o mal escritos, y que un estudiante en
 riesgo alto genere su alerta. Se ejecutan con:
@@ -124,14 +125,13 @@ estés trabajando.
 
 ## Lo que sigue
 
-Hay cosas que quedaron para los próximos sprints: cargar estudiantes de forma masiva desde un
-archivo de Excel, buscar y filtrar en la lista con paginación, exportar reportes y administrar
+Hay cosas que quedaron para los próximos sprints: autenticación con tokens JWT para la API, buscar y filtrar en la lista con paginación, exportar reportes y administrar
 los usuarios desde la propia aplicación. También queremos validar los pesos del motor de riesgo
 con datos reales de deserción y con la opinión de orientadores escolares.
 
 ## Quiénes somos
 
 Grupo colaborativo 139: Juan Pablo Cuellar Vanegas (líder), Luis Enrique Vergara Clavijo,
-Dixon [apellidos], Laura [apellidos] y Santiago [apellidos].
+Dixon Miguel Luna Valles, Laura Katerine Velazco Mendez y Santiago Gomez Cuellar .
 
 Lo construimos con Python, FastAPI, Jinja2, SQLite, Pydantic y pytest.
