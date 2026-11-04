@@ -6,6 +6,24 @@
 <p><a class="boton principal" href="/estudiantes/nuevo/">Nuevo Estudiante</a></p>
 <a class="boton" href="/estudiantes/importar/">Importar CSV / Excel</a>
 {% endif %}
+{# Formulario que envía lo escrito a la misma página, en la dirección (?q=...) #}
+<form class="buscador" method="get" action="/estudiantes/">
+  {# Cuadro de texto llamado "q"; muestra lo que ya se buscó para no perderlo #}
+  <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o documento">
+  {# Botón que envía el formulario (también funciona con Enter) #}
+  <button class="boton principal" type="submit">Buscar</button>
+  {# Solo si hay una búsqueda activa... #}
+  {% if q %}
+    {# ...mostramos un enlace para volver a la lista completa #}
+    <a class="boton" href="/estudiantes/">Limpiar</a>
+  {% endif %}
+{# Cerramos el formulario #}
+</form>
+
+{# Si hay búsqueda, decimos cuántos resultados se encontraron #}
+{% if q %}
+<p>{{ filas|length }} resultado(s) para "{{ q }}"</p>
+{% endif %}
 
 <div class="tabla-envoltura">
   <table>
@@ -21,6 +39,10 @@
         <td class="num">{{ e.puntaje }}</td>
         <td><span class="nivel {{ e.nivel }}">{{ e.nivel }}</span></td>
       </tr>
+            {# Si no hubo ninguna fila... #}
+      {% else %}
+      {# ...mostramos una sola fila con el mensaje, ocupando las 5 columnas #}
+      <tr><td colspan="5">No se encontraron estudiantes.</td></tr>
       {% endfor %}
     </tbody>
   </table>
