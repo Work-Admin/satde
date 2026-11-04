@@ -111,10 +111,10 @@ sesión de cada usuario va en una cookie firmada que no se puede alterar.
 
 ## Pruebas
 
-Escribimos trece pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé
+Escribimos 16 pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé
 lo que debe dar, que nadie entre sin iniciar sesión, que un docente no pueda registrar
 estudiantes, que no se acepten documentos repetidos o mal escritos, y que un estudiante en
-riesgo alto genere su alerta. Se ejecutan con:
+riesgo alto genere su alerta, buscar y filtrar en la lista con paginación. Se ejecutan con:
 
 ```bash
 python -m pytest -v
@@ -125,7 +125,7 @@ estés trabajando.
 
 ## Lo que sigue
 
-Hay cosas que quedaron para los próximos sprints: autenticación con tokens JWT para la API, buscar y filtrar en la lista con paginación, exportar reportes y administrar
+Hay cosas que quedaron para los próximos sprints: autenticación con tokens JWT para la API, , exportar reportes y administrar
 los usuarios desde la propia aplicación. También queremos validar los pesos del motor de riesgo
 con datos reales de deserción y con la opinión de orientadores escolares.
 

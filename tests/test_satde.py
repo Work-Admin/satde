@@ -119,3 +119,26 @@ def test_importar_csv_con_un_error(cliente):
     assert r.status_code == 200
     assert r.json()["creados"] == 1
     assert r.json()["errores"][0]["fila"] == 3
+    
+# ---------- búsqueda de estudiantes (TS-39) ----------
+
+def test_busqueda_encuentra_estudiante(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/estudiantes/", params={"q": "Gabriela"})
+    assert r.status_code == 200
+    assert "Gabriela" in r.text
+    assert "resultado(s) para" in r.text
+
+
+def test_busqueda_sin_resultados(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/estudiantes/", params={"q": "zzzz"})
+    assert r.status_code == 200
+    assert "No se encontraron estudiantes" in r.text
+
+
+def test_busqueda_resiste_inyeccion_sql(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/estudiantes/", params={"q": "' OR 1=1 --"})
+    assert r.status_code == 200
+    assert "No se encontraron estudiantes" in r.text

@@ -39,9 +39,7 @@
         <td class="num">{{ e.puntaje }}</td>
         <td><span class="nivel {{ e.nivel }}">{{ e.nivel }}</span></td>
       </tr>
-            {# Si no hubo ninguna fila... #}
       {% else %}
-      {# ...mostramos una sola fila con el mensaje, ocupando las 5 columnas #}
       <tr><td colspan="5">No se encontraron estudiantes.</td></tr>
       {% endfor %}
     </tbody>
