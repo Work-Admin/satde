@@ -24,7 +24,7 @@
 </form>
 
 {% if q or nivel %}
-<p>{{ filas|length }} resultado(s){% if q %} para "{{ q }}"{% endif %}{% if nivel %} con riesgo {{ nivel|lower }}{% endif %}</p>
+<p>{{ total }} resultado(s){% if q %} para "{{ q }}"{% endif %}{% if nivel %} con riesgo {{ nivel|lower }}{% endif %}</p>
 {% endif %}
 
 <div class="tabla-envoltura">
@@ -47,5 +47,16 @@
     </tbody>
   </table>
 </div>
+{% if total_paginas > 1 %}
+<nav class="paginacion" aria-label="Páginas">
+  {% if pagina > 1 %}
+  <a class="boton" href="?q={{ q|urlencode }}&amp;nivel={{ nivel }}&amp;pagina={{ pagina - 1 }}">« Anterior</a>
+  {% endif %}
+  <span>Página {{ pagina }} de {{ total_paginas }}</span>
+  {% if pagina < total_paginas %}
+  <a class="boton" href="?q={{ q|urlencode }}&amp;nivel={{ nivel }}&amp;pagina={{ pagina + 1 }}">Siguiente »</a>
+  {% endif %}
+</nav>
+{% endif %}
 
 {% include "footer.html" %}

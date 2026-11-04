@@ -1,5 +1,6 @@
 """Pruebas automáticas de SATDE. Ejecutar desde la raíz del proyecto:  python -m pytest -v"""
 import os
+import re
 import tempfile
 
 os.environ["SATDE_DB"] = os.path.join(tempfile.mkdtemp(), "satde_pruebas.db")
@@ -156,7 +157,31 @@ def test_filtro_nivel_alto(cliente):
 
 def test_filtro_nivel_invalido_se_ignora(cliente):
     ingresar(cliente, "orientadora", "Orienta2026!")
-    r = cliente.get("/estudiantes/", params={"nivel": "CRITICO"})
+    sin_filtro = cliente.get("/estudiantes/")
+    invalido = cliente.get("/estudiantes/", params={"nivel": "CRITICO"})
+    assert invalido.status_code == 200
+    paginas_sin_filtro = re.search(r"Página 1 de \d+", sin_filtro.text).group()
+    paginas_invalido = re.search(r"Página 1 de \d+", invalido.text).group()
+    assert paginas_invalido == paginas_sin_filtro
+    assert "con riesgo" not in invalido.text
+    
+# ---------- paginación de la lista ----------
+
+def contar_filas(html):
+    return len(re.findall(r'href="/estudiantes/\d+/"', html))
+
+
+def test_paginacion_muestra_20(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/estudiantes/")
     assert r.status_code == 200
-    assert "nivel ALTO" in r.text
-    assert "nivel BAJO" in r.text
+    assert contar_filas(r.text) == 20
+    assert "Página 1 de" in r.text
+
+
+def test_paginacion_fuera_de_rango(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/estudiantes/", params={"pagina": 999})
+    assert r.status_code == 200
+    assert contar_filas(r.text) >= 1
+    assert "Siguiente" not in r.text

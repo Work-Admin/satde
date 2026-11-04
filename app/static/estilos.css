@@ -158,3 +158,5 @@ form.en-linea { display: inline; }
 .buscador input { flex: 1; max-width: 420px; padding: .5rem; }
 /* El desplegable con el mismo relleno que el cuadro de búsqueda */
 .buscador select { padding: .5rem; }
+/* Centra los botones de página con espacio entre ellos */
+.paginacion { display: flex; gap: 1rem; align-items: center; justify-content: center; margin: 1rem 0; }

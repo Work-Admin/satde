@@ -3,6 +3,7 @@
 Ejecutar:  uvicorn app.main:app --reload
 """
 import os
+import math
 from contextlib import asynccontextmanager
 from datetime import date
 
@@ -155,10 +156,12 @@ def dashboard(request: Request, u=Depends(usuario_actual), con=Depends(get_db)):
     
 #-------- estudiantes (paso 8)-------------------
 NIVELES = ("ALTO", "MEDIO", "BAJO")
+POR_PAGINA = 20
 
 
 @app.get("/estudiantes/", response_class=HTMLResponse, include_in_schema=False)
-def estudiantes(request: Request, q: str = "", nivel: str = "", U=Depends(usuario_actual), con=Depends(get_db)):
+def estudiantes(request: Request, q: str = "", nivel: str = "", pagina: int = 1,
+                U=Depends(usuario_actual), con=Depends(get_db)):
     condiciones = ["e.estado = 'Activo'"]
     parametros = []
     q = q.strip()
@@ -172,12 +175,23 @@ def estudiantes(request: Request, q: str = "", nivel: str = "", U=Depends(usuari
         parametros.append(nivel)
     else:
         nivel = ""
-    sql = f"""SELECT e.id, e.documento, e.nombres, e.apellidos, e.puntaje, e.nivel, g.nombre AS grupo
+    where = " AND ".join(condiciones)
+    total = con.execute(
+        f"SELECT COUNT(*) FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id WHERE {where}",
+        parametros,
+    ).fetchone()[0]
+    total_paginas = max(1, math.ceil(total / POR_PAGINA))
+    pagina = min(max(pagina, 1), total_paginas)
+    filas = con.execute(
+        f"""SELECT e.id, e.documento, e.nombres, e.apellidos, e.puntaje, e.nivel, g.nombre AS grupo
         FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id
-        WHERE {' AND '.join(condiciones)}
-        ORDER BY e.puntaje DESC"""
-    filas = con.execute(sql, parametros).fetchall()
-    return render(request, "estudiantes.html", U, con=con, filas=filas, q=q, nivel=nivel, niveles=NIVELES)
+        WHERE {where}
+        ORDER BY e.puntaje DESC
+        LIMIT ? OFFSET ?""",
+        parametros + [POR_PAGINA, (pagina - 1) * POR_PAGINA],
+    ).fetchall()
+    return render(request, "estudiantes.html", U, con=con, filas=filas, q=q, nivel=nivel,
+                  niveles=NIVELES, total=total, pagina=pagina, total_paginas=total_paginas)
 
 def _form_ctx(con) -> dict:
     grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
