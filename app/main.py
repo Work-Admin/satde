@@ -154,8 +154,11 @@ def dashboard(request: Request, u=Depends(usuario_actual), con=Depends(get_db)):
     
     
 #-------- estudiantes (paso 8)-------------------
+NIVELES = ("ALTO", "MEDIO", "BAJO")
+
+
 @app.get("/estudiantes/", response_class=HTMLResponse, include_in_schema=False)
-def estudiantes(request: Request, q: str = "", U=Depends(usuario_actual), con=Depends(get_db)):
+def estudiantes(request: Request, q: str = "", nivel: str = "", U=Depends(usuario_actual), con=Depends(get_db)):
     condiciones = ["e.estado = 'Activo'"]
     parametros = []
     q = q.strip()
@@ -163,12 +166,18 @@ def estudiantes(request: Request, q: str = "", U=Depends(usuario_actual), con=De
         condiciones.append("((e.nombres || ' ' || e.apellidos) LIKE ? OR e.documento LIKE ?)")
         patron = f"%{q}%"
         parametros += [patron, patron]
+    nivel = nivel.upper()
+    if nivel in NIVELES:
+        condiciones.append("e.nivel = ?")
+        parametros.append(nivel)
+    else:
+        nivel = ""
     sql = f"""SELECT e.id, e.documento, e.nombres, e.apellidos, e.puntaje, e.nivel, g.nombre AS grupo
         FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id
         WHERE {' AND '.join(condiciones)}
         ORDER BY e.puntaje DESC"""
     filas = con.execute(sql, parametros).fetchall()
-    return render(request, "estudiantes.html", U, con=con, filas=filas, q=q)
+    return render(request, "estudiantes.html", U, con=con, filas=filas, q=q, nivel=nivel, niveles=NIVELES)
 
 def _form_ctx(con) -> dict:
     grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]

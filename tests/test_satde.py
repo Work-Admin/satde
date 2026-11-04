@@ -142,3 +142,21 @@ def test_busqueda_resiste_inyeccion_sql(cliente):
     r = cliente.get("/estudiantes/", params={"q": "' OR 1=1 --"})
     assert r.status_code == 200
     assert "No se encontraron estudiantes" in r.text
+    
+# ---------- filtro por nivel de riesgo (TS-13) ----------
+
+def test_filtro_nivel_alto(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/estudiantes/", params={"nivel": "ALTO"})
+    assert r.status_code == 200
+    assert "nivel ALTO" in r.text
+    assert "nivel MEDIO" not in r.text
+    assert "nivel BAJO" not in r.text
+
+
+def test_filtro_nivel_invalido_se_ignora(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/estudiantes/", params={"nivel": "CRITICO"})
+    assert r.status_code == 200
+    assert "nivel ALTO" in r.text
+    assert "nivel BAJO" in r.text

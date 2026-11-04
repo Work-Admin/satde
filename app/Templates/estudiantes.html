@@ -1,28 +1,30 @@
 {% set titulo = "Estudiantes" %}
 {% include "header.html" %}
- 
+
 <h1>Estudiantes</h1>
 {% if usuario.rol != 'docente' %}
-<p><a class="boton principal" href="/estudiantes/nuevo/">Nuevo Estudiante</a></p>
-<a class="boton" href="/estudiantes/importar/">Importar CSV / Excel</a>
+<p>
+  <a class="boton principal" href="/estudiantes/nuevo/">Nuevo Estudiante</a>
+  <a class="boton" href="/estudiantes/importar/">Importar CSV / Excel</a>
+</p>
 {% endif %}
-{# Formulario que envía lo escrito a la misma página, en la dirección (?q=...) #}
+
 <form class="buscador" method="get" action="/estudiantes/">
-  {# Cuadro de texto llamado "q"; muestra lo que ya se buscó para no perderlo #}
   <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o documento">
-  {# Botón que envía el formulario (también funciona con Enter) #}
+  <select name="nivel">
+    <option value="">Todos los niveles</option>
+    {% for n in niveles %}
+    <option value="{{ n }}" {% if n == nivel %}selected{% endif %}>{{ n|capitalize }}</option>
+    {% endfor %}
+  </select>
   <button class="boton principal" type="submit">Buscar</button>
-  {# Solo si hay una búsqueda activa... #}
-  {% if q %}
-    {# ...mostramos un enlace para volver a la lista completa #}
+  {% if q or nivel %}
     <a class="boton" href="/estudiantes/">Limpiar</a>
   {% endif %}
-{# Cerramos el formulario #}
 </form>
 
-{# Si hay búsqueda, decimos cuántos resultados se encontraron #}
-{% if q %}
-<p>{{ filas|length }} resultado(s) para "{{ q }}"</p>
+{% if q or nivel %}
+<p>{{ filas|length }} resultado(s){% if q %} para "{{ q }}"{% endif %}{% if nivel %} con riesgo {{ nivel|lower }}{% endif %}</p>
 {% endif %}
 
 <div class="tabla-envoltura">
@@ -45,7 +47,5 @@
     </tbody>
   </table>
 </div>
-
-
 
 {% include "footer.html" %}

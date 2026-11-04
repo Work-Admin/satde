@@ -156,3 +156,5 @@ form.en-linea { display: inline; }
 .buscador { display: flex; gap: .5rem; margin: 1rem 0; flex-wrap: wrap; }
 /* El cuadro de texto ocupa el espacio disponible, pero sin pasar de 420px */
 .buscador input { flex: 1; max-width: 420px; padding: .5rem; }
+/* El desplegable con el mismo relleno que el cuadro de búsqueda */
+.buscador select { padding: .5rem; }
