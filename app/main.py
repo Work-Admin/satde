@@ -473,3 +473,20 @@ def usuario_nuevo(request: Request, usuario: str = Form(""), nombre: str = Form(
     con.commit()
     flash(request, f"Usuario {usuario} creado.")
     return ir("/usuarios/")
+
+@app.post("/usuarios/{uid}/estado/", include_in_schema=False)
+def usuario_estado(request: Request, uid: int, U=Depends(solo_admin), con=Depends(get_db)):
+    fila = con.execute("SELECT usuario, activo FROM usuarios WHERE id = ?", (uid,)).fetchone()
+    if not fila:
+        flash(request, "El usuario no existe.", "error")
+        return ir("/usuarios/")
+    if uid == U["id"]:
+        flash(request, "No puede desactivar su propio usuario.", "error")
+        return ir("/usuarios/")
+    nuevo = 0 if fila["activo"] else 1
+    con.execute("UPDATE usuarios SET activo = ? WHERE id = ?", (nuevo, uid))
+    accion = "Activar usuario" if nuevo else "Desactivar usuario"
+    auditar(con, U["usuario"], accion, fila["usuario"])
+    con.commit()
+    flash(request, f"{accion}: {fila['usuario']}.")
+    return ir("/usuarios/")

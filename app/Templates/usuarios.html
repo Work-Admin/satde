@@ -6,7 +6,7 @@
 <div class="tabla-envoltura">
   <table>
     <thead>
-      <tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th></tr>
+      <tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th>Acción</th></tr>
     </thead>
     <tbody>
       {% for u in filas %}
@@ -15,6 +15,13 @@
         <td>{{ u.usuario }}</td>
         <td>{{ u.rol|capitalize }}</td>
         <td>{% if u.activo %}Activo{% else %}Inactivo{% endif %}</td>
+        <td>
+          {% if u.id != usuario.id %}
+          <form method="post" action="/usuarios/{{ u.id }}/estado/">
+            <button class="boton" type="submit">{% if u.activo %}Desactivar{% else %}Activar{% endif %}</button>
+          </form>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

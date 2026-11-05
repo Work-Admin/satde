@@ -229,3 +229,20 @@ def test_clave_corta_es_rechazada(cliente):
     ingresar(cliente, "admin", "Admin2026!")
     r = crear_usuario(cliente, usuario="prueba.dos", clave="123", clave2="123")
     assert "al menos 8 caracteres" in r.text
+    
+def test_usuario_desactivado_no_ingresa(cliente):
+    ingresar(cliente, "admin", "Admin2026!")
+    r = crear_usuario(cliente, usuario="prueba.tres")
+    uid = re.search(r"<td>prueba\.tres</td>.*?/usuarios/(\d+)/estado/", r.text, re.S).group(1)
+    r = cliente.post(f"/usuarios/{uid}/estado/")
+    assert "Desactivar usuario: prueba.tres" in r.text
+    cliente.get("/logout/")
+    r = ingresar(cliente, "prueba.tres", "Clave2026!")
+    assert "Usuario o contraseña incorrectos" in r.text
+
+
+def test_admin_no_se_desactiva_a_si_mismo(cliente):
+    ingresar(cliente, "admin", "Admin2026!")
+    r = cliente.post("/usuarios/1/estado/")
+    assert "No puede desactivar su propio usuario." in r.text
+    assert cliente.get("/usuarios/").status_code == 200
