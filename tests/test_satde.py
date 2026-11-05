@@ -246,3 +246,29 @@ def test_admin_no_se_desactiva_a_si_mismo(cliente):
     r = cliente.post("/usuarios/1/estado/")
     assert "No puede desactivar su propio usuario." in r.text
     assert cliente.get("/usuarios/").status_code == 200
+    
+# ---------- tendencias para gráficos ----------
+
+def test_api_tendencias_por_grado(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/api/dashboard/tendencias")
+    assert r.status_code == 200
+    datos = r.json()
+    assert len(datos) >= 1
+    grados = [d["grado"] for d in datos]
+    assert grados == sorted(grados)
+    for d in datos:
+        assert 0 <= d["porcentaje_alto"] <= 100
+        assert 0 <= d["inasistencia_promedio"] <= 100
+    resumen = cliente.get("/api/dashboard/resumen").json()
+    assert sum(d["estudiantes"] for d in datos) == resumen["estudiantes_activos"]
+    
+def test_api_tendencias_sin_sesion(cliente):
+    assert cliente.get("/api/dashboard/tendencias").status_code == 401
+    
+def test_dashboard_tiene_grafico_de_tendencias(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/dashboard")
+    assert r.status_code == 200
+    assert 'id="grafico-tendencias"' in r.text
+    assert "/api/dashboard/tendencias" in r.text

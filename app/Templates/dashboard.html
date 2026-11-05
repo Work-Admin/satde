@@ -59,5 +59,80 @@
     </div>
   </div>
 </section>
+<section class="caja">
+  <h2>Tendencia del riesgo por grado</h2>
+  <p class="sub">Porcentaje de estudiantes en riesgo alto (barras) y puntaje promedio (línea).</p>
+  <canvas id="grafico-tendencias" role="img" aria-label="Riesgo alto y puntaje promedio por grado"></canvas>
+  <p id="grafico-error" class="aviso error" hidden></p>
+  <p><button id="descargar-grafico" class="boton" type="button">Descargar imagen</button></p>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  (async function () {
+    const lienzo = document.getElementById("grafico-tendencias");
+    const error = document.getElementById("grafico-error");
+    try {
+      const respuesta = await fetch("/api/dashboard/tendencias");
+      if (!respuesta.ok) throw new Error("La API respondió " + respuesta.status);
+      const datos = await respuesta.json();
+
+      new Chart(lienzo, {
+        type: "bar",
+        data: {
+          labels: datos.map(d => d.grado + "°"),
+          datasets: [
+            {
+              label: "% en riesgo alto",
+              data: datos.map(d => d.porcentaje_alto),
+              backgroundColor: "#c0392b",
+              yAxisID: "porcentaje",
+            },
+            {
+              type: "line",
+              label: "Puntaje promedio",
+              data: datos.map(d => d.puntaje_promedio),
+              borderColor: "#1f4e79",
+              backgroundColor: "#1f4e79",
+              tension: 0.3,
+              yAxisID: "puntaje",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            porcentaje: { type: "linear", position: "left", min: 0, max: 100,
+                          title: { display: true, text: "% en riesgo alto" } },
+            puntaje: { type: "linear", position: "right", min: 0,
+                       title: { display: true, text: "Puntaje promedio" },
+                       grid: { drawOnChartArea: false } },
+          },
+        },
+        plugins: [{
+          id: "fondo-blanco",
+          beforeDraw: (chart) => {
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, chart.width, chart.height);
+            ctx.restore();
+          },
+        }],
+      });
+    } catch (e) {
+      error.textContent = "No se pudo cargar el gráfico de tendencias.";
+      error.hidden = false;
+      lienzo.hidden = true;
+    }
+
+    document.getElementById("descargar-grafico").addEventListener("click", () => {
+      const enlace = document.createElement("a");
+      enlace.href = lienzo.toDataURL("image/png");
+      enlace.download = "satde_tendencia_riesgo_por_grado.png";
+      enlace.click();
+    });
+  })();
+</script>
 
 {% include "footer.html" %}

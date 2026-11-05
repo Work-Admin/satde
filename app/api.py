@@ -73,7 +73,13 @@ class IntervencionOut(BaseModel):
     descripcion: str
     usuario: str
 
-
+class TendenciaGrado(BaseModel):
+    grado: int
+    estudiantes: int
+    puntaje_promedio: float
+    inasistencia_promedio: float
+    porcentaje_alto: float
+    
 def _resumen(f) -> dict:
     return {"id": f["id"], "documento": f["documento"], "nombre": f"{f['apellidos']} {f['nombres']}",
             "grupo": f["grupo"], "puntaje": f["puntaje"], "nivel": f["nivel"]}
@@ -162,7 +168,22 @@ def resumen(u=Depends(usuario_actual), con: sqlite3.Connection = Depends(get_db)
         "alertas_nuevas": con.execute("SELECT COUNT(*) FROM alertas WHERE estado = 'Nueva'").fetchone()[0],
         "casos_abiertos": con.execute("SELECT COUNT(*) FROM casos WHERE estado = 'Abierto'").fetchone()[0],
     }
-    
+@router.get("/dashboard/tendencias", response_model=list[TendenciaGrado],
+            summary="Indicadores de riesgo por grado (para gráficos de tendencia)")
+def tendencias(u=Depends(usuario_actual), con: sqlite3.Connection = Depends(get_db)):
+    filas = con.execute(
+        """SELECT g.grado,
+                  COUNT(*) AS estudiantes,
+                  ROUND(AVG(e.puntaje), 1) AS puntaje_promedio,
+                  ROUND(AVG(e.porcentaje_inasistencia), 1) AS inasistencia_promedio,
+                  ROUND(100.0 * SUM(e.nivel = 'ALTO') / COUNT(*), 1) AS porcentaje_alto
+           FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id
+           WHERE e.estado = 'Activo'
+           GROUP BY g.grado
+           ORDER BY g.grado"""
+    ).fetchall()
+    return [dict(f) for f in filas]
+
 class ResultadoImportacion(BaseModel):
     creados: int
     actualizados: int
