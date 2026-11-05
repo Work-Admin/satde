@@ -8,6 +8,7 @@ os.environ["SATDE_DB"] = os.path.join(tempfile.mkdtemp(), "satde_pruebas.db")
 import pytest
 from fastapi.testclient import TestClient
 
+from app import auth
 from app import riesgo
 from app.main import app
 
@@ -272,3 +273,34 @@ def test_dashboard_tiene_grafico_de_tendencias(cliente):
     assert r.status_code == 200
     assert 'id="grafico-tendencias"' in r.text
     assert "/api/dashboard/tendencias" in r.text
+    
+# ---------- autenticación JWT para la API (TS-25) ----------
+
+def pedir_token(cliente, usuario, clave):
+    return cliente.post("/api/token", data={"username": usuario, "password": clave})
+
+
+def test_token_jwt_permite_usar_api(cliente):
+    r = pedir_token(cliente, "orientadora", "Orienta2026!")
+    assert r.status_code == 200
+    token = r.json()["access_token"]
+    r = cliente.get("/api/dashboard/resumen", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    assert "estudiantes_activos" in r.json()
+
+
+def test_token_clave_incorrecta(cliente):
+    assert pedir_token(cliente, "orientadora", "otra-clave").status_code == 401
+
+
+def test_token_alterado_es_rechazado(cliente):
+    token = pedir_token(cliente, "orientadora", "Orienta2026!").json()["access_token"]
+    alterado = token[:-1] + ("A" if token[-1] != "A" else "B")
+    r = cliente.get("/api/dashboard/resumen", headers={"Authorization": f"Bearer {alterado}"})
+    assert r.status_code == 401
+
+
+def test_token_vencido_es_rechazado(cliente):
+    vencido = auth.crear_token(2, minutos=-1)
+    r = cliente.get("/api/dashboard/resumen", headers={"Authorization": f"Bearer {vencido}"})
+    assert r.status_code == 401

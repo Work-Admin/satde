@@ -1,10 +1,14 @@
 """Contraseñas cifradas (PBKDF2-SHA256), sesión y control de acceso por rol."""
 import hashlib
 import hmac
+import os
 import secrets
 import sqlite3
+from datetime import datetime, timedelta, timezone
 
+import jwt
 from fastapi import Depends, Request
+from fastapi.security import OAuth2PasswordBearer
 
 from .db import get_db
 
@@ -26,6 +30,26 @@ def verificar(clave: str, guardado: str) -> bool:
     return hmac.compare_digest(calc, h)
 
 
+CLAVE_JWT = os.environ.get("SATDE_JWT_SECRET", secrets.token_hex(32))
+ALGORITMO_JWT = "HS256"
+MINUTOS_TOKEN = 60
+
+oauth2 = OAuth2PasswordBearer(tokenUrl="/api/token", auto_error=False)
+
+
+def crear_token(uid: int, minutos: int = MINUTOS_TOKEN) -> str:
+    vence = datetime.now(timezone.utc) + timedelta(minutes=minutos)
+    return jwt.encode({"sub": str(uid), "exp": vence}, CLAVE_JWT, algorithm=ALGORITMO_JWT)
+
+
+def leer_token(token: str) -> int | None:
+    try:
+        datos = jwt.decode(token, CLAVE_JWT, algorithms=[ALGORITMO_JWT])
+        return int(datos["sub"])
+    except (jwt.PyJWTError, KeyError, ValueError):
+        return None
+    
+
 class NoAutenticado(Exception):
     pass
 
@@ -35,8 +59,11 @@ class SinPermiso(Exception):
 
 
 # ---------- dependencias de acceso (lo que faltaba) ----------
-def usuario_actual(request: Request, con: sqlite3.Connection = Depends(get_db)) -> dict:
+def usuario_actual(request: Request, token: str | None = Depends(oauth2),
+                   con: sqlite3.Connection = Depends(get_db)) -> dict:
     uid = request.session.get("uid")
+    if not uid and token:
+        uid = leer_token(token)
     if not uid:
         raise NoAutenticado()
     fila = con.execute("SELECT * FROM usuarios WHERE id = ? AND activo = 1", (uid,)).fetchone()

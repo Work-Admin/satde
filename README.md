@@ -74,47 +74,82 @@ así que vale la pena probarlos todos:
 
 | Usuario | Contraseña | Qué puede hacer |
 |---|---|---|
-| orientadora | Orienta2026! | Todo: registrar estudiantes, atender alertas y llevar los casos |
-| admin | Admin2026! | Registrar y editar estudiantes |
+| orientadora | Orienta2026! | Registrar e importar estudiantes, atender alertas y llevar los casos |
+| admin | Admin2026! | Registrar e importar estudiantes y administrar los usuarios del sistema |
 | docente | Docente2026! | Solo consultar |
 
 ## Qué hay construido
 
 La aplicación tiene las mismas pantallas que diseñamos primero en Balsamiq: el inicio de sesión,
-un tablero con los indicadores generales y el riesgo por grado, la lista de estudiantes, la
-ficha de cada uno con su índice de riesgo explicado, el formulario para registrar y editar, la
-bandeja de alertas y la pantalla de cada caso con su historial de intervenciones.
+un tablero con los indicadores generales, la lista de estudiantes, la ficha de cada uno con su
+índice de riesgo explicado, el formulario para registrar y editar, la carga masiva desde Excel o
+CSV, la bandeja de alertas y la pantalla de cada caso con su historial de intervenciones.
+
+Con el uso fuimos agregando lo que hacía falta para trabajar con muchos estudiantes a la vez. La
+lista ahora se puede buscar por nombre o documento, filtrar por nivel de riesgo y recorrer por
+páginas de 20, de modo que la orientadora encuentra rápido a quién debe atender primero.
+
+El tablero, además de las tarjetas y las barras de riesgo por grado, tiene un gráfico de
+tendencia que combina barras y línea: muestra en qué grados se concentra el riesgo alto y cómo
+cambia el puntaje promedio a lo largo de la trayectoria escolar. Ese gráfico no lo arma el
+servidor, sino el navegador, que le pide los datos a la API y los dibuja con Chart.js. Se puede
+descargar como imagen para pegarlo en informes.
+
+El administrador tiene su propia pantalla para gestionar usuarios: crearlos con su rol,
+desactivarlos cuando alguien deja la institución y volver a activarlos si hace falta. Preferimos
+desactivar en lugar de borrar, para no perder el registro de lo que cada persona hizo en el
+sistema.
 
 Por dentro, separamos la lógica del sistema (el cálculo del riesgo, las validaciones y la regla
 de las alertas) de las pantallas. Eso nos permitió exponer las mismas funciones a través de una
 API REST, pensando en que más adelante otro sistema, como una aplicación móvil para docentes o
-el SIMAT, pueda consultar o enviar información. La documentación de la API se puede probar en
-`/docs`, después de iniciar sesión en la misma ventana del navegador.
+el SIMAT, pueda consultar o enviar información.
 
 | Método | Ruta | Para qué sirve |
 |---|---|---|
+| POST | `/api/token` | Obtener un token de acceso con usuario y contraseña |
 | GET | `/api/students` | Listar estudiantes, con filtros por riesgo, grupo o nombre |
 | GET | `/api/students/{id}` | Ver la ficha de un estudiante con el detalle de su riesgo |
 | POST | `/api/students` | Registrar un estudiante |
 | GET | `/api/students/{id}/observations` | Ver el historial de intervenciones |
 | POST | `/api/interventions` | Registrar una intervención en un caso |
-| GET | `/api/dashboard/resumen` | Consultar los indicadores del tablero |
 | POST | `/api/upload` | Importar estudiantes desde un archivo CSV o Excel |
+| GET | `/api/dashboard/resumen` | Consultar los indicadores del tablero |
+| GET | `/api/dashboard/tendencias` | Consultar los indicadores de riesgo por grado |
+
+La documentación de la API se puede probar en `/docs`. Hay dos formas de entrar: iniciar sesión
+antes en la misma ventana del navegador, o usar el botón **Authorize** con usuario y contraseña,
+que es como se conectaría otro programa.
 
 La información se guarda en una base de datos SQLite con siete tablas: usuarios, grupos,
 estudiantes, alertas, casos, intervenciones y auditoría. En esta última queda registrado quién
-entró al sistema y quién consultó o modificó cada dato, algo que consideramos necesario al
-manejar información de menores.
+entró al sistema y quién consultó o modificó cada dato, incluida la creación y desactivación de
+usuarios, algo que consideramos necesario al manejar información de menores.
 
-Sobre seguridad: las contraseñas no se guardan tal cual, sino cifradas con PBKDF2-SHA256, y la
-sesión de cada usuario va en una cookie firmada que no se puede alterar.
+## Seguridad
+
+Las contraseñas no se guardan tal cual, sino cifradas con PBKDF2-SHA256, y la sesión de cada
+usuario va en una cookie firmada que no se puede alterar. Para la API usamos tokens JWT firmados
+que vencen a los 60 minutos; si alguien cambia una sola letra del token, el sistema lo rechaza.
+Y si el administrador desactiva a un usuario, este pierde el acceso de inmediato, tanto en la
+página como en la API, aunque su token todavía no haya vencido.
+
+Las búsquedas y los filtros nunca pegan lo que escribe el usuario dentro de la consulta SQL: los
+valores viajan aparte, lo que evita la inyección SQL. Lo comprobamos con una prueba automática.
+
+En producción hay que definir dos variables de entorno con claves propias: `SATDE_SECRET`, para
+firmar la sesión, y `SATDE_JWT_SECRET`, para firmar los tokens. Si no se definen, el sistema
+genera unas al azar cada vez que arranca, lo que sirve para desarrollo pero obliga a todos a
+volver a iniciar sesión cuando el servidor se reinicia.
 
 ## Pruebas
 
-Escribimos 21 pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé
-lo que debe dar, que nadie entre sin iniciar sesión, que un docente no pueda registrar
-estudiantes, que no se acepten documentos repetidos o mal escritos, y que un estudiante en
-riesgo alto genere su alerta, buscar y filtrar en la lista con paginación. Se ejecutan con:
+Escribimos 34 pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé lo
+que debe dar, que nadie entre sin iniciar sesión, que un docente no pueda registrar estudiantes,
+que no se acepten documentos repetidos o mal escritos y que un estudiante en riesgo alto genere
+su alerta. También cubren la búsqueda, el filtro por nivel y la paginación, la gestión de
+usuarios, el gráfico de tendencias y los tokens de la API, incluidos los casos en que el token
+está alterado o vencido. Se ejecutan con:
 
 ```bash
 python -m pytest -v
@@ -125,13 +160,15 @@ estés trabajando.
 
 ## Lo que sigue
 
-Hay cosas que quedaron para los próximos sprints: autenticación con tokens JWT para la API, , exportar reportes y administrar
-los usuarios desde la propia aplicación. También queremos validar los pesos del motor de riesgo
-con datos reales de deserción y con la opinión de orientadores escolares.
+Quedan cosas para los próximos sprints: exportar reportes en PDF y Excel, filtrar por grado y
+curso, guardar la historia del riesgo de cada estudiante para ver cómo cambia en el tiempo,
+gestionar los periodos académicos y hacer copias de seguridad automáticas. También queremos
+validar los pesos del motor de riesgo con datos reales de deserción y con la opinión de
+orientadores escolares.
 
 ## Quiénes somos
 
 Grupo colaborativo 139: Juan Pablo Cuellar Vanegas (líder), Luis Enrique Vergara Clavijo,
-Dixon Miguel Luna Valles, Laura Katerine Velazco Mendez y Santiago Gomez Cuellar .
+Dixon Miguel Luna Valles, Laura Katerine Velazco Mendez y Santiago Gomez Cuellar.
 
-Lo construimos con Python, FastAPI, Jinja2, SQLite, Pydantic y pytest.
+Lo construimos con Python, FastAPI, Jinja2, SQLite, Pydantic, Pandas, PyJWT, Chart.js y pytest.
