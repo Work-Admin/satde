@@ -8,8 +8,31 @@
 
 <section class="caja pila">
   <p>Use la plantilla: una fila por estudiante. Se acepta CSV separado por punto y coma o Excel (.xlsx, primera hoja).
-     En los factores de contexto escriba 1 (sí) o 0 (no).</p>
-  <p><a class="boton" href="/estudiantes/plantilla.csv">Descargar plantilla</a></p>
+    En los factores de contexto escriba 1 (sí) o 0 (no).</p>
+
+  <!-- Menú desplegable integrado con los estilos existentes -->
+  <div style="position: relative; display: inline-block; margin-bottom: 10px;">
+    <details style="position: relative;">
+      <summary class="boton"
+        style="list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+        Descargar plantilla
+        <span style="font-size: 0.8em;">▼</span>
+      </summary>
+
+      <div
+        style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: var(--fondo-caja, #fff); border: 1px solid var(--borde, #ccc); border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10; min-width: 180px; display: flex; flex-direction: column;">
+        <a href="/estudiantes/plantilla.csv"
+          style="padding: 10px 14px; text-decoration: none; color: inherit; display: block; border-bottom: 1px solid var(--borde, #eee);">Formato
+          CSV (.csv)</a>
+        <a href="/estudiantes/plantilla.xlsx"
+          style="padding: 10px 14px; text-decoration: none; color: inherit; display: block;">Formato Excel (.xlsx)</a>
+        <a href="/estudiantes/plantilla.PDF"
+          style="padding: 10px 14px; text-decoration: none; color: inherit; display: block;">Formato PDF (.PDF)</a>
+      </div>
+    </details>
+  </div>
+<!-- integrar las tres funciones de exportar - Hecho por Juan Cuellar -->
+
   <form method="post" enctype="multipart/form-data" class="filtros" style="grid-template-columns: 1fr auto; margin: 0">
     <input type="file" name="archivo" accept=".csv,.xlsx" required aria-label="Archivo CSV o Excel">
     <button class="principal" type="submit">Importar</button>

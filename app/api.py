@@ -5,8 +5,9 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
+from fastapi.security import OAuth2PasswordRequestForm
 
-from . import riesgo, servicios
+from . import auth, riesgo, servicios
 from .auth import puede_editar, solo_orientador, usuario_actual
 from .db import auditar, get_db
 
@@ -199,3 +200,14 @@ async def upload(archivo: UploadFile = File(...), u=Depends(puede_editar), con: 
     auditar(con, u["usuario"], "Importó estudiantes (API)", archivo.filename or "")
     con.commit()
     return res
+
+@router.post("/token", summary="Obtener token JWT (para programas externos)")
+def obtener_token(form: OAuth2PasswordRequestForm = Depends(), con: sqlite3.Connection = Depends(get_db)):
+    fila = con.execute("SELECT * FROM usuarios WHERE usuario = ? AND activo = 1",
+                       (form.username,)).fetchone()
+    if not fila or not auth.verificar(form.password, fila["hash"]):
+        raise HTTPException(401, "Usuario o contraseña incorrectos",
+                            headers={"WWW-Authenticate": "Bearer"})
+    auditar(con, fila["usuario"], "Token API emitido", f"vence en {auth.MINUTOS_TOKEN} min")
+    con.commit()
+    return {"access_token": auth.crear_token(fila["id"]), "token_type": "bearer"}
