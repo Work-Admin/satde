@@ -56,3 +56,4 @@ def requiere_rol(*roles: str):
 
 puede_editar = requiere_rol("admin", "orientador")
 solo_orientador = requiere_rol("orientador")
+solo_admin = requiere_rol("admin")

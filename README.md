@@ -111,7 +111,7 @@ sesión de cada usuario va en una cookie firmada que no se puede alterar.
 
 ## Pruebas
 
-Escribimos 16 pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé
+Escribimos 21 pruebas automáticas que revisan lo más importante: que el cálculo del riesgo dé
 lo que debe dar, que nadie entre sin iniciar sesión, que un docente no pueda registrar
 estudiantes, que no se acepten documentos repetidos o mal escritos, y que un estudiante en
 riesgo alto genere su alerta, buscar y filtrar en la lista con paginación. Se ejecutan con:

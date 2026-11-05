@@ -1,0 +1,24 @@
+{% set titulo = "Usuarios" %}
+{% include "header.html" %}
+
+<h1>Usuarios</h1>
+<p><a class="boton principal" href="/usuarios/nuevo/">Nuevo usuario</a></p>
+<div class="tabla-envoltura">
+  <table>
+    <thead>
+      <tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th></tr>
+    </thead>
+    <tbody>
+      {% for u in filas %}
+      <tr>
+        <td>{{ u.nombre }}</td>
+        <td>{{ u.usuario }}</td>
+        <td>{{ u.rol|capitalize }}</td>
+        <td>{% if u.activo %}Activo{% else %}Inactivo{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "footer.html" %}

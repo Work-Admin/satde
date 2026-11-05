@@ -185,3 +185,47 @@ def test_paginacion_fuera_de_rango(cliente):
     assert r.status_code == 200
     assert contar_filas(r.text) >= 1
     assert "Siguiente" not in r.text
+    
+# ---------- gestión de usuarios (TS-23) ----------
+
+def test_admin_ve_usuarios(cliente):
+    ingresar(cliente, "admin", "Admin2026!")
+    r = cliente.get("/usuarios/")
+    assert r.status_code == 200
+    assert "orientadora" in r.text
+    assert "docente" in r.text
+    assert "pbkdf2" not in r.text
+
+
+def test_orientadora_no_ve_usuarios(cliente):
+    ingresar(cliente, "orientadora", "Orienta2026!")
+    r = cliente.get("/usuarios/", follow_redirects=False)
+    assert r.status_code == 303
+    
+def crear_usuario(cliente, **cambios):
+    datos = {"usuario": "prueba.uno", "nombre": "Usuario de prueba", "rol": "docente",
+             "clave": "Clave2026!", "clave2": "Clave2026!"}
+    datos.update(cambios)
+    return cliente.post("/usuarios/nuevo/", data=datos)
+
+
+def test_admin_crea_usuario_y_este_ingresa(cliente):
+    ingresar(cliente, "admin", "Admin2026!")
+    r = crear_usuario(cliente)
+    assert r.url.path == "/usuarios/"
+    assert "prueba.uno" in r.text
+    cliente.get("/logout/")
+    r = ingresar(cliente, "prueba.uno", "Clave2026!")
+    assert r.url.path == "/dashboard"
+
+
+def test_usuario_repetido_es_rechazado(cliente):
+    ingresar(cliente, "admin", "Admin2026!")
+    r = crear_usuario(cliente, usuario="orientadora")
+    assert "Ese usuario ya existe." in r.text
+
+
+def test_clave_corta_es_rechazada(cliente):
+    ingresar(cliente, "admin", "Admin2026!")
+    r = crear_usuario(cliente, usuario="prueba.dos", clave="123", clave2="123")
+    assert "al menos 8 caracteres" in r.text

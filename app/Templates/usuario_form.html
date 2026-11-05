@@ -1,0 +1,36 @@
+{% set titulo = "Nuevo usuario" %}
+{% include "header.html" %}
+
+<h1>Nuevo usuario</h1>
+
+{% if error %}
+<p class="aviso error">{{ error }}</p>
+{% endif %}
+
+<form method="post" action="/usuarios/nuevo/">
+  <label for="usuario">Usuario</label>
+  <input id="usuario" name="usuario" value="{{ datos.usuario or '' }}" required>
+
+  <label for="nombre">Nombre completo</label>
+  <input id="nombre" name="nombre" value="{{ datos.nombre or '' }}" required>
+
+  <label for="rol">Rol</label>
+  <select id="rol" name="rol" required>
+    {% for r in roles %}
+    <option value="{{ r }}" {% if r == datos.rol %}selected{% endif %}>{{ r|capitalize }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="clave">Contraseña (mínimo 8 caracteres)</label>
+  <input id="clave" name="clave" type="password" minlength="8" required>
+
+  <label for="clave2">Repita la contraseña</label>
+  <input id="clave2" name="clave2" type="password" minlength="8" required>
+
+  <p>
+    <button class="boton principal" type="submit">Guardar</button>
+    <a class="boton" href="/usuarios/">Cancelar</a>
+  </p>
+</form>
+
+{% include "footer.html" %}

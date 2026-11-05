@@ -3,6 +3,7 @@
 Ejecutar:  uvicorn app.main:app --reload
 """
 import os
+import re
 import math
 from contextlib import asynccontextmanager
 from datetime import date
@@ -14,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import api, auth, riesgo, seed, servicios
-from .auth import NoAutenticado, SinPermiso, puede_editar, solo_orientador, usuario_actual
+from .auth import NoAutenticado, SinPermiso, puede_editar,solo_admin, solo_orientador, usuario_actual
 from .db import BASE_DIR, auditar, get_db
 
 
@@ -423,3 +424,52 @@ def cerrar_caso(request: Request, caso_id: int, resultado: str = Form(...),
     con.commit()
     flash(request, "Caso cerrado.")
     return ir(f"/seguimiento/casos/{caso_id}/")
+
+ROLES = ("admin", "orientador", "docente")
+
+
+@app.get("/usuarios/", response_class=HTMLResponse, include_in_schema=False)
+def usuarios(request: Request, U=Depends(solo_admin), con=Depends(get_db)):
+    filas = con.execute(
+        "SELECT id, usuario, nombre, rol, activo FROM usuarios ORDER BY activo DESC, nombre"
+    ).fetchall()
+    return render(request, "usuarios.html", U, con=con, filas=filas)
+
+def validar_usuario(con, usuario, nombre, rol, clave, clave2):
+    if not re.fullmatch(r"[a-z0-9._-]{3,30}", usuario):
+        return "El usuario debe tener entre 3 y 30 caracteres: minúsculas, números, punto, guion o guion bajo."
+    if not nombre:
+        return "El nombre es obligatorio."
+    if rol not in ROLES:
+        return "Rol no válido."
+    if len(clave) < 8:
+        return "La contraseña debe tener al menos 8 caracteres."
+    if clave != clave2:
+        return "Las contraseñas no coinciden."
+    if con.execute("SELECT 1 FROM usuarios WHERE usuario = ?", (usuario,)).fetchone():
+        return "Ese usuario ya existe."
+    return None
+
+
+@app.get("/usuarios/nuevo/", response_class=HTMLResponse, include_in_schema=False)
+def usuario_nuevo_form(request: Request, U=Depends(solo_admin), con=Depends(get_db)):
+    return render(request, "usuario_form.html", U, con=con, roles=ROLES, datos={})
+
+
+@app.post("/usuarios/nuevo/", include_in_schema=False)
+def usuario_nuevo(request: Request, usuario: str = Form(""), nombre: str = Form(""), rol: str = Form(""),
+                  clave: str = Form(""), clave2: str = Form(""), U=Depends(solo_admin), con=Depends(get_db)):
+    usuario = usuario.strip().lower()
+    nombre = nombre.strip()
+    error = validar_usuario(con, usuario, nombre, rol, clave, clave2)
+    if error:
+        datos = {"usuario": usuario, "nombre": nombre, "rol": rol}
+        return render(request, "usuario_form.html", U, con=con, roles=ROLES, datos=datos, error=error)
+    con.execute(
+        "INSERT INTO usuarios (usuario, nombre, rol, hash, activo) VALUES (?, ?, ?, ?, 1)",
+        (usuario, nombre, rol, auth.cifrar(clave)),
+    )
+    auditar(con, U["usuario"], "Crear usuario", f"{usuario} ({rol})")
+    con.commit()
+    flash(request, f"Usuario {usuario} creado.")
+    return ir("/usuarios/")
