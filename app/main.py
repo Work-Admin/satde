@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from datetime import date
 
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -216,10 +216,27 @@ async def importar_estudiantes(request: Request, archivo: UploadFile = File(...)
     return render(request, "importar.html", u, con=con, resultado=resultado)
 
 
-@app.get("/estudiantes/plantilla.csv", include_in_schema=False)
-def plantilla(u=Depends(usuario_actual)):
-    return PlainTextResponse("\ufeff" + servicios.plantilla_csv(), media_type="text/csv",
-                             headers={"Content-Disposition": "attachment; filename=plantilla_estudiantes.csv"})
+@app.get("/estudiantes/plantilla.{formato}", include_in_schema=False)
+def plantilla(formato: servicios.TipoPlantilla, u=Depends(usuario_actual)):
+    # Llamas a tu única función que resuelve todo por dentro
+    contenido, media_type, ext = servicios.generar_plantilla_estudiantes(formato)
+
+    # Si es CSV usamos PlainTextResponse por el BOM (\ufeff), si no, un Response normal para binarios
+    if formato == servicios.TipoPlantilla.csv:
+        return PlainTextResponse(
+            content=contenido,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename=plantilla_estudiantes.{ext}"}
+        )
+    else:
+        return Response(
+            content=contenido,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename=plantilla_estudiantes.{ext}"}
+        )
+
 
 @app.get("/estudiantes/nuevo/", response_class=HTMLResponse, include_in_schema=False)
 def nuevo_form(request: Request, u=Depends(puede_editar), con=Depends(get_db)):
