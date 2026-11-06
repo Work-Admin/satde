@@ -232,12 +232,18 @@ async def importar_estudiantes(request: Request, archivo: UploadFile = File(...)
     return render(request, "importar.html", u, con=con, resultado=resultado)
 
 
-@app.get("/estudiantes/plantilla.{formato}", include_in_schema=False)
+@app.get("/estudiantes/plantilla.csv", include_in_schema=False)
+def plantilla(u=Depends(usuario_actual)):
+    return PlainTextResponse("\ufeff" + servicios.plantilla_csv(), media_type="text/csv",
+                             headers={"Content-Disposition": "attachment; filename=plantilla_estudiantes.csv"})
+
+# TODO: agregar exportar estudiantes a Excel y PDF. instrutivo vinculacion del html api/estudiantes/Exportar.{formato}
+
+@app.get("/estudiantes/Exportar.{formato}", include_in_schema=False)
 def plantilla(formato: servicios.TipoPlantilla, u=Depends(usuario_actual)):
-    # Llamas a tu única función que resuelve todo por dentro
     contenido, media_type, ext = servicios.generar_plantilla_estudiantes(formato)
 
-    # Si es CSV usamos PlainTextResponse por el BOM (\ufeff), si no, un Response normal para binarios
+    # Si es CSV se usa PlainTextResponse por el BOM (\ufeff), si no, un Response normal para binarios
     if formato == servicios.TipoPlantilla.csv:
         return PlainTextResponse(
             content=contenido,

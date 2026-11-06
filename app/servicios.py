@@ -162,6 +162,12 @@ def importar(con: sqlite3.Connection, nombre: str, contenido: bytes) -> dict:
     return {"creados": creados, "actualizados": actualizados, "errores": errores}
 
 
+def plantilla_csv() -> str:
+    ejemplo = ["1020304050", "Ana María", "Pérez Gómez", "2014-05-02", "6-A", "Activo",
+               "Luz Gómez", "3001234567", "12,5", "1", "0", "1", "0", "0", "0", "0", "0"]
+    return ";".join(COLUMNAS_PLANTILLA) + "\n" + ";".join(ejemplo) + "\n"
+
+
 class TipoPlantilla(str, Enum):
     csv = "csv"
     xlsx = "xlsx"
@@ -192,7 +198,3 @@ def obtener_datos_xlsx():
     pass
 
 
-def plantilla_csv() -> str:
-    ejemplo = ["1020304050", "Ana María", "Pérez Gómez", "2014-05-02", "6-A", "Activo",
-               "Luz Gómez", "3001234567", "12,5", "1", "0", "1", "0", "0", "0", "0", "0"]
-    return ";".join(COLUMNAS_PLANTILLA) + "\n" + ";".join(ejemplo) + "\n"

@@ -3,11 +3,35 @@
 
 <h1>Estudiantes</h1>
 {% if usuario.rol != 'docente' %}
-<p>
+<p style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
   <a class="boton principal" href="/estudiantes/nuevo/">Nuevo Estudiante</a>
   <a class="boton" href="/estudiantes/importar/">Importar CSV / Excel</a>
+
+  <!-- Menú desplegable integrado en la misma línea -->
+<div style="position: relative; display: inline-block;">
+  <details style="position: relative;">
+    <summary class="boton"
+      style="list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+      Descargar Tabla
+      <span style="font-size: 0.8em;">▼</span>
+    </summary>
+
+    <div
+      style="position: absolute; top: 100%; left: 0; margin-top: 4px; background: var(--papel, #fff); border: 1px solid var(--linea, #ccc); border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10; min-width: 180px; display: flex; flex-direction: column;">
+      <a href="/estudiantes/Exportar.csv"
+        style="padding: 10px 14px; text-decoration: none; color: inherit; display: block; border-bottom: 1px solid var(--linea, #eee);">Formato
+        CSV (.csv)</a>
+      <a href="/estudiantes/Exportar.xlsx"
+        style="padding: 10px 14px; text-decoration: none; color: inherit; display: block; border-bottom: 1px solid var(--linea, #eee);">Formato
+        Excel (.xlsx)</a>
+      <a href="/estudiantes/Exportar.PDF"
+        style="padding: 10px 14px; text-decoration: none; color: inherit; display: block;">Formato PDF (.PDF)</a>
+    </div>
+  </details>
+</div>
 </p>
 {% endif %}
+
 
 <form class="buscador" method="get" action="/estudiantes/">
   <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o documento">
