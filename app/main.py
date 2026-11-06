@@ -161,7 +161,7 @@ POR_PAGINA = 20
 
 
 @app.get("/estudiantes/", response_class=HTMLResponse, include_in_schema=False)
-def estudiantes(request: Request, q: str = "", nivel: str = "", pagina: int = 1,
+def estudiantes(request: Request, q: str = "", nivel: str = "", grupo: str = "", pagina: int = 1,
                 U=Depends(usuario_actual), con=Depends(get_db)):
     condiciones = ["e.estado = 'Activo'"]
     parametros = []
@@ -176,7 +176,20 @@ def estudiantes(request: Request, q: str = "", nivel: str = "", pagina: int = 1,
         parametros.append(nivel)
     else:
         nivel = ""
+
+    # 3. Nuevo filtro por grupo
+    grupo = grupo.strip()
+    if grupo:
+        condiciones.append("g.nombre = ?")
+        parametros.append(grupo)
+
     where = " AND ".join(condiciones)
+
+    # Obtenemos la lista única de grupos de la base de datos para alimentar el <datalist>
+    grupos_disponibles = [
+        row[0] for row in con.execute("SELECT DISTINCT nombre FROM grupos ORDER BY nombre").fetchall()
+    ]
+
     total = con.execute(
         f"SELECT COUNT(*) FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id WHERE {where}",
         parametros,
@@ -191,8 +204,11 @@ def estudiantes(request: Request, q: str = "", nivel: str = "", pagina: int = 1,
         LIMIT ? OFFSET ?""",
         parametros + [POR_PAGINA, (pagina - 1) * POR_PAGINA],
     ).fetchall()
-    return render(request, "estudiantes.html", U, con=con, filas=filas, q=q, nivel=nivel,
-                  niveles=NIVELES, total=total, pagina=pagina, total_paginas=total_paginas)
+    return render(
+        request, "estudiantes.html", U, con=con, filas=filas,
+        q=q, nivel=nivel, grupo=grupo, grupos_disponibles=grupos_disponibles,
+        niveles=NIVELES, total=total, pagina=pagina, total_paginas=total_paginas
+    )
 
 def _form_ctx(con) -> dict:
     grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]

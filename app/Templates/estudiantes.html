@@ -11,15 +11,25 @@
 
 <form class="buscador" method="get" action="/estudiantes/">
   <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o documento">
+
+  <input type="text" name="grupo" value="{{ grupo }}" list="lista_grupos" placeholder="Todos los grupos">
+  <datalist id="lista_grupos">
+    {% for g in grupos_disponibles %}
+    <option value="{{ g }}"></option>
+    {% endfor %}
+  </datalist>
+
   <select name="nivel">
-    <option value="">Todos los niveles</option>
+    <option value="">Todo nivel</option>
     {% for n in niveles %}
-    <option value="{{ n }}" {% if n == nivel %}selected{% endif %}>{{ n|capitalize }}</option>
+    <option value="{{ n }}" {% if n==nivel %}selected{% endif %}>{{ n|capitalize }}</option>
     {% endfor %}
   </select>
-  <button class="boton principal" type="submit">Buscar</button>
-  {% if q or nivel %}
-    <a class="boton" href="/estudiantes/">Limpiar</a>
+
+  <button class="boton principal" type="submit">Filtrar</button>
+
+  {% if q or nivel or grupo %}
+  <a class="boton" href="/estudiantes/">Limpiar</a>
   {% endif %}
 </form>
 
