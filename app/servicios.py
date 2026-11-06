@@ -1,4 +1,5 @@
 """Lógica de negocio: recálculo del riesgo, alertas y validación de estudiantes."""
+from enum import Enum  # para la exportacion de la plantilla en diferentes formatos
 import sqlite3
 import io
 import pandas as pd
@@ -159,6 +160,36 @@ def importar(con: sqlite3.Connection, nombre: str, contenido: bytes) -> dict:
         except ValueError as e:
             errores.append({"fila": n, "motivo": str(e)})
     return {"creados": creados, "actualizados": actualizados, "errores": errores}
+
+
+class TipoPlantilla(str, Enum):
+    csv = "csv"
+    xlsx = "xlsx"
+    pdf = "PDF"
+# En tu capa de servicios o lógica de negocio
+def generar_plantilla_estudiantes(formato: TipoPlantilla):
+    if formato == TipoPlantilla.csv:
+        contenido = "\ufeff" + obtener_datos_csv()  # o tu función actual
+        media_type = "text/csv"
+        ext = "csv"
+    elif formato == TipoPlantilla.xlsx:
+        contenido = obtener_datos_xlsx()  # Retorna bytes del Excel
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ext = "xlsx"
+    elif formato == TipoPlantilla.pdf:
+        contenido = obtener_datos_pdf()  # Retorna bytes del PDF
+        media_type = "application/pdf"
+        ext = "PDF"  # O "pdf" dependiendo de cómo lo prefieras
+
+    return contenido, media_type, ext
+
+
+def obtener_datos_csv():
+    pass
+def obtener_datos_pdf():
+    pass
+def obtener_datos_xlsx():
+    pass
 
 
 def plantilla_csv() -> str:
