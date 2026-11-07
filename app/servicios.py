@@ -1,4 +1,9 @@
 """Lógica de negocio: recálculo del riesgo, alertas y validación de estudiantes."""
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.pagesizes import letter
+from enum import Enum  # para la exportacion de la plantilla en diferentes formatos
 import sqlite3
 import io
 import pandas as pd
@@ -165,3 +170,131 @@ def plantilla_csv() -> str:
     ejemplo = ["1020304050", "Ana María", "Pérez Gómez", "2014-05-02", "6-A", "Activo",
                "Luz Gómez", "3001234567", "12,5", "1", "0", "1", "0", "0", "0", "0", "0"]
     return ";".join(COLUMNAS_PLANTILLA) + "\n" + ";".join(ejemplo) + "\n"
+
+
+class TipoPlantilla(str, Enum):
+    xlsx = "xlsx"
+    pdf = "PDF"
+
+
+def construir_filtros_estudiantes(q: str = "", nivel: str = "", grupo: str = ""):
+    condiciones = ["e.estado = 'Activo'"]
+    parametros = []
+
+    # 1. Búsqueda por texto (nombre o documento)
+    q = (q or "").strip()
+    if q:
+        condiciones.append(
+            "((e.nombres || ' ' || e.apellidos) LIKE ? OR e.documento LIKE ?)")
+        patron = f"%{q}%"
+        parametros += [patron, patron]
+
+    # 2. Filtro por nivel
+    nivel = (nivel or "").upper()
+    if nivel in ("ALTO", "MEDIO", "BAJO"):
+        condiciones.append("e.nivel = ?")
+        parametros.append(nivel)
+    else:
+        nivel = ""
+
+    # 3. Filtro por grupo
+    grupo = (grupo or "").strip()
+    if grupo:
+        condiciones.append("g.nombre = ?")
+        parametros.append(grupo)
+
+    where = " AND ".join(condiciones)
+    return where, parametros, q, nivel, grupo
+
+
+def generar_plantilla_estudiantes(formato: TipoPlantilla, con, q, nivel, grupo):
+    where, parametros, _, _, _ = construir_filtros_estudiantes(q, nivel, grupo)  
+    # _, _, _ : ignorar los valores de búsqueda y filtros que no se necesitan aquí
+
+    if formato == TipoPlantilla.xlsx:
+        contenido = obtener_datos_xlsx(con, where, parametros)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ext = "xlsx"
+    elif formato == TipoPlantilla.pdf:
+        contenido = obtener_datos_pdf(con, where, parametros)
+        media_type = "application/pdf"
+        ext = "PDF"
+
+    return contenido, media_type, ext
+
+
+def obtener_datos_xlsx(con, where, parametros):
+    query = f"""
+        SELECT e.documento AS Documento, 
+               e.nombres AS Nombres, 
+               e.apellidos AS Apellidos, 
+               e.puntaje AS Puntaje, 
+               e.nivel AS Nivel, 
+               g.nombre AS Grupo
+        FROM estudiantes e 
+        JOIN grupos g ON g.id = e.grupo_id
+        WHERE {where}
+        ORDER BY e.puntaje DESC
+    """
+    df = pd.read_sql_query(query, con, params=parametros)
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Estudiantes Filtrados')
+    output.seek(0)
+    return output.read()
+
+
+def obtener_datos_pdf(con, where, parametros):
+    # Consulta SQL aplicando los mismos filtros activos
+    query = f"""
+        SELECT e.documento, e.nombres, e.apellidos, e.puntaje, e.nivel, g.nombre AS grupo
+        FROM estudiantes e 
+        JOIN grupos g ON g.id = e.grupo_id
+        WHERE {where}
+        ORDER BY e.puntaje DESC
+    """
+
+    # Ejecutamos la consulta pasando los parámetros de forma segura
+    cursor = con.execute(query, parametros)
+    filas = cursor.fetchall()
+
+    # Creamos un buffer en memoria para el PDF
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elementos = []
+
+    # Estilos y título del reporte
+    styles = getSampleStyleSheet()
+    elementos.append(
+        Paragraph("<b>Reporte de Estudiantes - SATDE</b>", styles['Heading1']))
+    elementos.append(Spacer(1, 12))
+
+    # Construcción de los datos para la tabla (Cabecera + Filas)
+    data = [["Documento", "Nombres y Apellidos", "Grupo", "Puntaje", "Nivel"]]
+
+    for row in filas:
+        nombre_completo = f"{row[1]} {row[2]}"
+        data.append([str(row[0]), nombre_completo, str(
+            row[5]), str(row[3]), str(row[4])])
+
+    # Definición de la tabla y sus estilos corporativos
+    t = Table(data)
+    t.setStyle(TableStyle([
+        # Color institucional
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0b5394')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        # Líneas de separación suaves
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd2d9')),
+    ]))
+
+    elementos.append(t)
+
+    # Generar y construir el documento
+    doc.build(elementos)
+    buffer.seek(0)
+
+    return buffer.read()
