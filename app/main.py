@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from datetime import date
 
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -159,30 +159,27 @@ def dashboard(request: Request, u=Depends(usuario_actual), con=Depends(get_db)):
 NIVELES = ("ALTO", "MEDIO", "BAJO")
 POR_PAGINA = 20
 
-
 @app.get("/estudiantes/", response_class=HTMLResponse, include_in_schema=False)
-def estudiantes(request: Request, q: str = "", nivel: str = "", pagina: int = 1,
+def estudiantes(request: Request, q: str = "", nivel: str = "", grupo: str = "", pagina: int = 1,
                 U=Depends(usuario_actual), con=Depends(get_db)):
-    condiciones = ["e.estado = 'Activo'"]
-    parametros = []
-    q = q.strip()
-    if q:
-        condiciones.append("((e.nombres || ' ' || e.apellidos) LIKE ? OR e.documento LIKE ?)")
-        patron = f"%{q}%"
-        parametros += [patron, patron]
-    nivel = nivel.upper()
-    if nivel in NIVELES:
-        condiciones.append("e.nivel = ?")
-        parametros.append(nivel)
-    else:
-        nivel = ""
-    where = " AND ".join(condiciones)
+
+    # Uso de la función compartida
+    where, parametros, q, nivel, grupo = servicios.construir_filtros_estudiantes(
+        q, nivel, grupo)
+
+    # Obtener la lista única de grupos para el <datalist>
+    grupos_disponibles = [
+        row[0] for row in con.execute("SELECT DISTINCT nombre FROM grupos ORDER BY nombre").fetchall()
+    ]
+
     total = con.execute(
         f"SELECT COUNT(*) FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id WHERE {where}",
         parametros,
     ).fetchone()[0]
+
     total_paginas = max(1, math.ceil(total / POR_PAGINA))
     pagina = min(max(pagina, 1), total_paginas)
+
     filas = con.execute(
         f"""SELECT e.id, e.documento, e.nombres, e.apellidos, e.puntaje, e.nivel, g.nombre AS grupo
         FROM estudiantes e JOIN grupos g ON g.id = e.grupo_id
@@ -191,8 +188,13 @@ def estudiantes(request: Request, q: str = "", nivel: str = "", pagina: int = 1,
         LIMIT ? OFFSET ?""",
         parametros + [POR_PAGINA, (pagina - 1) * POR_PAGINA],
     ).fetchall()
-    return render(request, "estudiantes.html", U, con=con, filas=filas, q=q, nivel=nivel,
-                  niveles=NIVELES, total=total, pagina=pagina, total_paginas=total_paginas)
+
+    return render(
+        request, "estudiantes.html", U, con=con, filas=filas,
+        q=q, nivel=nivel, grupo=grupo, grupos_disponibles=grupos_disponibles,
+        niveles=NIVELES, total=total, pagina=pagina, total_paginas=total_paginas
+    )
+
 
 def _form_ctx(con) -> dict:
     grupos = [r["nombre"] for r in con.execute("SELECT nombre FROM grupos ORDER BY grado")]
@@ -220,6 +222,21 @@ async def importar_estudiantes(request: Request, archivo: UploadFile = File(...)
 def plantilla(u=Depends(usuario_actual)):
     return PlainTextResponse("\ufeff" + servicios.plantilla_csv(), media_type="text/csv",
                              headers={"Content-Disposition": "attachment; filename=plantilla_estudiantes.csv"})
+
+
+@app.get("/estudiantes/Exportar.{formato}", include_in_schema=False)
+def exportar_estudiantes(formato: servicios.TipoPlantilla,q: str = "",
+    nivel: str = "", grupo: str = "", u=Depends(usuario_actual), con=Depends(get_db)):
+    # Genera el archivo pasando también los filtros actuales
+    contenido, media_type, ext = servicios.generar_plantilla_estudiantes(formato, con, q, nivel, grupo)
+
+    return Response(
+        content=contenido,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename=estudiantes_filtrados_satde.{ext}"}
+    )
+
 
 @app.get("/estudiantes/nuevo/", response_class=HTMLResponse, include_in_schema=False)
 def nuevo_form(request: Request, u=Depends(puede_editar), con=Depends(get_db)):

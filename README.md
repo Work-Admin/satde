@@ -116,6 +116,7 @@ el SIMAT, pueda consultar o enviar información.
 | POST | `/api/upload` | Importar estudiantes desde un archivo CSV o Excel |
 | GET | `/api/dashboard/resumen` | Consultar los indicadores del tablero |
 | GET | `/api/dashboard/tendencias` | Consultar los indicadores de riesgo por grado |
+| GET | `/estudiantes/Exportar.{formato}` | Exportar Tabla con filtros y formato distinto |
 
 La documentación de la API se puede probar en `/docs`. Hay dos formas de entrar: iniciar sesión
 antes en la misma ventana del navegador, o usar el botón **Authorize** con usuario y contraseña,

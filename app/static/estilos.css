@@ -82,7 +82,7 @@ button.enlace { background: none; border: 0; padding: 0; text-decoration: underl
 button.enlace.peligro { color: var(--alto); }
 
 label { display: block; font-size: 13px; margin-bottom: 4px; color: #3e4c59; }
-input[type=text], input[type=password], input[type=date], input[type=number], input[type=file], select, textarea {
+input[type=text], input[type=password], input[type=date], input[type=number], input[type=file], select, textarea, input[list] {
   width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--linea); border-radius: 6px; background: var(--papel); }
 input:focus, select:focus, textarea:focus { border-color: var(--marca); }
 textarea { min-height: 90px; resize: vertical; }
@@ -91,7 +91,7 @@ textarea { min-height: 90px; resize: vertical; }
 .check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin: 6px 0; }
 .check input { width: 17px; height: 17px; margin: 0; accent-color: var(--marca); }
 .filtros { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; margin-bottom: 14px; }
-@media (max-width: 700px) { .filtros { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .filtros { grid-template-columns: 1fr; } }
 .pila > * + * { margin-top: 14px; }
 
 /* ---------- tablas ---------- */
@@ -152,11 +152,40 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 form.en-linea { display: inline; }
 
-/* Pone el cuadro y los botones uno al lado del otro, con espacio entre ellos */
-.buscador { display: flex; gap: .5rem; margin: 1rem 0; flex-wrap: wrap; }
-/* El cuadro de texto ocupa el espacio disponible, pero sin pasar de 420px */
-.buscador input { flex: 1; max-width: 420px; padding: .5rem; }
-/* El desplegable con el mismo relleno que el cuadro de búsqueda */
-.buscador select { padding: .5rem; }
-/* Centra los botones de página con espacio entre ellos */
-.paginacion { display: flex; gap: 1rem; align-items: center; justify-content: center; margin: 1rem 0; }
+/* Contenedor del buscador */
+form.buscador {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  /* Permite que baje a la siguiente línea solo en móviles */
+  margin: 1rem 0;
+  width: 100%;
+}
+
+/* 1. Rompemos la regla global que hace que midan 100% */
+form.buscador input[type="search"],
+form.buscador input[type="text"],
+form.buscador select {
+  width: auto !important;
+  margin: 0;
+}
+
+/* 2. Damos proporciones: El buscador principal toma el doble de espacio */
+form.buscador input[type="search"] {
+  flex: 2 1 250px;
+}
+
+/* El input de grupo y el select toman una proporción equitativa */
+form.buscador input[type="text"],
+form.buscador select {
+  flex: 1 1 150px;
+}
+
+/* 3. El botón no se estira, solo ocupa su espacio */
+form.buscador button,
+form.buscador .boton {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
