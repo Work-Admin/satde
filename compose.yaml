@@ -1,0 +1,13 @@
+services:
+  satde:
+    build: .
+    container_name: satde
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - satde_datos:/data
+
+volumes:
+  satde_datos:
